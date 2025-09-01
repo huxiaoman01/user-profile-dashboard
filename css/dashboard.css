@@ -1,0 +1,354 @@
+/* 小小纺用户画像分析平台 - 自定义样式 */
+
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* 卡片样式 */
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: box-shadow 0.15s ease-in-out;
+}
+
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    font-weight: 600;
+}
+
+/* 导航栏样式 */
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+.nav-text {
+    font-size: 0.9rem;
+}
+
+/* 统计卡片样式 */
+.card.bg-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3) !important;
+}
+
+.card.bg-success {
+    background: linear-gradient(45deg, #28a745, #1e7e34) !important;
+}
+
+.card.bg-info {
+    background: linear-gradient(45deg, #17a2b8, #138496) !important;
+}
+
+.card.bg-warning {
+    background: linear-gradient(45deg, #ffc107, #e0a800) !important;
+}
+
+/* 表格样式 */
+.table {
+    font-size: 0.9rem;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+/* 用户标签样式 */
+.user-tag {
+    display: inline-block;
+    background-color: #e9ecef;
+    color: #495057;
+    padding: 2px 8px;
+    margin: 2px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.user-tag.tag-游戏爱好者 {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.user-tag.tag-学习导向 {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.user-tag.tag-技术达人 {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.user-tag.tag-社交活跃 {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.user-tag.tag-生活关注 {
+    background-color: #e2e3e5;
+    color: #383d41;
+}
+
+/* 按钮样式 */
+.btn-sm {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* 用户详情区域 */
+#userDetail {
+    min-height: 300px;
+}
+
+.user-info-item {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    border-left: 4px solid #007bff;
+}
+
+.user-info-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 5px;
+}
+
+.user-info-content {
+    color: #6c757d;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+/* 图表容器 */
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+
+/* 词云容器 */
+#wordCloudContainer {
+    min-height: 250px;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.word-cloud-wrapper {
+    text-align: center;
+    line-height: 1.6;
+}
+
+.word-cloud-item {
+    display: inline-block;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 3px 8px !important;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.word-cloud-item:hover {
+    background-color: rgba(0,123,255,0.1);
+    transform: scale(1.1);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 0 10px;
+    }
+    
+    .card-body {
+        padding: 1rem 0.75rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.8rem;
+    }
+    
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+    
+    /* 热力图响应式 */
+    .heatmap-container {
+        font-size: 0.8rem;
+        padding: 10px;
+    }
+    
+    .heatmap-label {
+        min-width: 60px;
+        font-size: 0.75rem;
+        padding: 4px 6px;
+    }
+    
+    .heatmap-cell {
+        width: 30px;
+        height: 30px;
+        font-size: 0.7rem;
+    }
+    
+    .heatmap-hour {
+        font-size: 0.7rem;
+        padding: 4px 3px;
+    }
+    
+    /* 移动端布局调整 */
+    .col-lg-8, .col-lg-4 {
+        margin-bottom: 1rem;
+    }
+}
+
+/* 加载动画 */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(0,123,255,.3);
+    border-radius: 50%;
+    border-top-color: #007bff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* DataTables 自定义样式 */
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background: #007bff;
+    border-color: #007bff;
+    color: white !important;
+}
+
+/* 热力图样式 */
+.heatmap-container {
+    padding: 20px;
+    overflow-x: auto;
+}
+
+.heatmap-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+
+.heatmap-table th,
+.heatmap-table td {
+    border: 1px solid #ddd;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.heatmap-label {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    padding: 6px 8px;
+    white-space: nowrap;
+    min-width: 80px;
+    font-size: 0.85rem;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.heatmap-hour {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    padding: 8px 6px;
+    font-size: 0.8rem;
+}
+
+.heatmap-cell {
+    width: 40px;
+    height: 40px;
+    padding: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 600;
+    color: #333;
+}
+
+.heatmap-cell:hover {
+    transform: scale(1.1);
+    border-color: #007bff;
+    border-width: 2px;
+}
+
+.heatmap-legend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+.legend-label {
+    margin-right: 10px;
+    font-weight: 600;
+}
+
+.legend-gradient {
+    width: 100px;
+    height: 20px;
+    background: linear-gradient(to right, 
+        rgba(255, 99, 132, 0.1), 
+        rgba(255, 99, 132, 1)
+    );
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.legend-labels {
+    display: flex;
+    justify-content: space-between;
+    width: 100px;
+    margin-left: 10px;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
