@@ -50,6 +50,7 @@ function updateStats() {
 function initializeUsersTable() {
     const users = analyticsData.users;
     
+    // 桌面端表格数据
     const tableData = users.map(user => [
         user.nickname,
         user.main_group || '未知群组',
@@ -58,24 +59,56 @@ function initializeUsersTable() {
         `<span class="badge bg-${getCategoryColor(user.user_category)}">${user.user_category}</span>`,
         `<span class="badge bg-${getStatusColor(user.portrait_status)}">${user.portrait_status}</span>`,
         formatUserTags(user.keywords),
-        `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">
-            <i class="fas fa-eye"></i> 查看详情
-        </button>`
+        `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
     ]);
     
-    $('#usersTable').DataTable({
-        data: tableData,
-        language: {
-            url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/zh.json'
-        },
-        pageLength: 10,
-        responsive: true,
-        order: [[3, 'desc']], // 按消息数排序
-        columnDefs: [
-            { targets: [7], orderable: false, searchable: false },
-            { targets: [2, 3], type: 'num' }
-        ]
-    });
+    // 移动端表格数据（简化版）
+    const mobileTableData = users.map(user => [
+        `<div class="mobile-user-info">
+            <div class="mobile-user-name">${user.nickname}</div>
+            <div class="mobile-user-group">${user.main_group || '未知群组'}</div>
+            <div class="mobile-user-tags">${formatUserTagsMobile(user.keywords)}</div>
+        </div>`,
+        user.message_count || 0,
+        `<span class="badge bg-${getCategoryColor(user.user_category)}" style="font-size: 0.65rem;">${getShortUserCategory(user.user_category)}</span>`,
+        `<button class="btn btn-primary btn-mobile" onclick="showUserDetailMobile('${user.user_id}')">详情</button>`
+    ]);
+    
+    // 初始化桌面端表格
+    if ($('#usersTable').length > 0) {
+        $('#usersTable').DataTable({
+            data: tableData,
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/zh.json'
+            },
+            pageLength: 10,
+            responsive: true,
+            order: [[3, 'desc']], // 按消息数排序
+            columnDefs: [
+                { targets: [7], orderable: false, searchable: false },
+                { targets: [2, 3], type: 'num' }
+            ]
+        });
+    }
+    
+    // 初始化移动端表格
+    if ($('#usersTableMobile').length > 0) {
+        $('#usersTableMobile').DataTable({
+            data: mobileTableData,
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/zh.json'
+            },
+            pageLength: 8,
+            responsive: false,
+            order: [[1, 'desc']], // 按消息数排序
+            columnDefs: [
+                { targets: [3], orderable: false, searchable: false },
+                { targets: [1], type: 'num' }
+            ],
+            lengthChange: false,
+            info: false
+        });
+    }
 }
 
 // 获取用户类型颜色
@@ -109,6 +142,36 @@ function formatUserTags(keywords) {
     return keywords.map(tag => 
         `<span class="user-tag tag-${tag}">${tag}</span>`
     ).join(' ');
+}
+
+// 格式化移动端用户标签（简化版）
+function formatUserTagsMobile(keywords) {
+    if (!keywords || keywords.length === 0) {
+        return '<span class="user-tag">未分类</span>';
+    }
+    
+    // 移动端只显示前2个标签
+    const limitedTags = keywords.slice(0, 2);
+    let result = limitedTags.map(tag => 
+        `<span class="user-tag tag-${tag}">${tag}</span>`
+    ).join(' ');
+    
+    if (keywords.length > 2) {
+        result += `<span class="user-tag">+${keywords.length - 2}</span>`;
+    }
+    
+    return result;
+}
+
+// 获取简短的用户类型名称
+function getShortUserCategory(category) {
+    const shortNames = {
+        '高价值用户': '高价值',
+        '潜在用户': '潜在',
+        '新用户': '新用户',
+        '沉默用户': '沉默'
+    };
+    return shortNames[category] || category;
 }
 
 // 格式化详细画像文本，支持展开/收起和tooltip
@@ -183,12 +246,40 @@ function toggleImpression(impressionId) {
     }
 }
 
-// 显示用户详情
+// 显示用户详情（桌面端）
 function showUserDetail(userId) {
     const user = analyticsData.users.find(u => u.user_id === userId);
     if (!user) return;
     
-    const detailHtml = `
+    const detailHtml = generateUserDetailHtml(user, userId);
+    $('#userDetail').html(detailHtml);
+    
+    // 同时在模态框中显示
+    $('#modalUserDetail').html(detailHtml);
+    
+    // 初始化新添加的tooltip
+    initializeTooltips();
+}
+
+// 显示用户详情（移动端，使用模态框）
+function showUserDetailMobile(userId) {
+    const user = analyticsData.users.find(u => u.user_id === userId);
+    if (!user) return;
+    
+    const detailHtml = generateUserDetailHtml(user, userId);
+    $('#modalUserDetail').html(detailHtml);
+    
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('userModal'));
+    modal.show();
+    
+    // 初始化新添加的tooltip
+    initializeTooltips();
+}
+
+// 生成用户详情HTML
+function generateUserDetailHtml(user, userId) {
+    return `
         <div class="user-info-item">
             <div class="user-info-label">用户昵称</div>
             <div class="user-info-content">${user.nickname}</div>
@@ -233,14 +324,6 @@ function showUserDetail(userId) {
             </div>
         </div>
     `;
-    
-    $('#userDetail').html(detailHtml);
-    
-    // 同时在模态框中显示
-    $('#modalUserDetail').html(detailHtml);
-    
-    // 初始化新添加的tooltip
-    initializeTooltips();
 }
 
 // 初始化所有tooltip
@@ -273,7 +356,12 @@ function generateWordCloud() {
     let wordCloudHtml = '<div class="word-cloud-wrapper">';
     
     wordCloudData.forEach((item, index) => {
-        const fontSize = Math.max(12, (item.weight / maxWeight) * 32 + 12);
+        // 根据屏幕大小调整字体计算
+        const isMobile = window.innerWidth <= 768;
+        const baseFontSize = isMobile ? 10 : 12;
+        const maxScaleFactor = isMobile ? 24 : 32;
+        
+        const fontSize = Math.max(baseFontSize, (item.weight / maxWeight) * maxScaleFactor + baseFontSize);
         const colors = ['#007bff', '#28a745', '#17a2b8', '#ffc107', '#dc3545', '#6610f2', '#fd7e14', '#20c997'];
         const color = colors[index % colors.length];
         
