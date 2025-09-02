@@ -605,55 +605,32 @@ body {
     color: #666;
 }
 
-/* 修复模态框布局跳跃问题 - 简化方案 */
+/* 修复模态框布局跳跃问题 - 彻底解决方案 */
+
+/* 最简单有效的方法：完全禁用Bootstrap的模态框滚动处理 */
 html {
-    /* 方案1：强制始终显示滚动条，这是最简单可靠的方法 */
+    /* 强制始终显示滚动条 */
     overflow-y: scroll !important;
 }
 
-/* 确保容器不会因为滚动条变化而跳跃 */
-.container-fluid {
-    /* 使用视窗宽度而不是100%，避免滚动条影响 */
-    max-width: 100vw;
-    box-sizing: border-box;
-}
-
-/* 禁用Bootstrap模态框的默认body处理 */
+/* 完全禁用Bootstrap模态框的所有样式修改 */
 body.modal-open {
-    /* 重写Bootstrap的默认样式，防止其修改padding */
+    overflow: auto !important;
     padding-right: 0 !important;
     margin-right: 0 !important;
-    overflow: auto !important; /* 保持滚动功能 */
 }
 
-/* 额外的强制措施：针对所有可能受影响的容器 */
-.modal-open .navbar,
-.modal-open .container-fluid,
-.modal-open .card,
-.modal-open table {
-    /* 防止任何容器因为滚动条变化而改变宽度 */
-    width: auto !important;
-    max-width: none !important;
-    margin-right: 0 !important;
-    padding-right: 0 !important;
+/* 使用JavaScript来完全控制模态框的滚动行为 */
+.modal {
+    /* 模态框自身处理滚动 */
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
-/* 特别针对移动端的修复 */
-@media (max-width: 768px) {
-    body.modal-open {
-        /* 移动端通常没有滚动条问题，但保险起见 */
-        position: relative !important;
-        overflow: auto !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-    
-    /* 确保移动端容器不受影响 */
-    .modal-open .container-fluid {
-        padding-left: 8px !important;
-        padding-right: 8px !important;
-        width: 100% !important;
-    }
+/* 确保模态框不会影响body滚动 */
+.modal-backdrop {
+    /* 背景层不影响滚动 */
+    position: fixed !important;
 }
 
 /* 滚动条样式 */

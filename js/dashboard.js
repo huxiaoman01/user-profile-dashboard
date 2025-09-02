@@ -8,29 +8,63 @@ $(document).ready(function() {
     initializeModalFix();
 });
 
-// 初始化模态框跳跃修复 - 简化版
+// 初始化模态框跳跃修复 - 彻底阻止Bootstrap默认行为
 function initializeModalFix() {
     const userModal = document.getElementById('userModal');
     if (userModal) {
-        // 简单粗暴的方法：禁用Bootstrap的默认滚动条处理
-        userModal.addEventListener('show.bs.modal', function (e) {
-            // 阻止Bootstrap修改body样式
+        // 创建我们自己的模态框实例，覆盖Bootstrap默认配置
+        const modalInstance = new bootstrap.Modal(userModal, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
+        
+        // 完全阻止Bootstrap的默认滚动处理
+        const originalShow = modalInstance.show;
+        const originalHide = modalInstance.hide;
+        
+        modalInstance.show = function() {
+            // 保存当前body样式
+            const currentPadding = document.body.style.paddingRight;
+            const currentOverflow = document.body.style.overflow;
+            
+            // 调用原始方法
+            originalShow.call(this);
+            
+            // 立即恢复body样式
+            document.body.style.paddingRight = currentPadding;
+            document.body.style.overflow = 'auto';
+            document.body.classList.remove('modal-open');
+            
+            // 强制重写
             setTimeout(() => {
                 document.body.style.paddingRight = '0px';
                 document.body.style.overflow = 'auto';
-            }, 10);
-        });
+                document.body.style.marginRight = '0px';
+            }, 0);
+        };
         
-        userModal.addEventListener('shown.bs.modal', function () {
-            // 模态框完全显示后，确保body样式正确
-            document.body.style.paddingRight = '0px';
-            document.body.style.overflow = 'auto';
-        });
+        modalInstance.hide = function() {
+            originalHide.call(this);
+            // 确保隐藏后样式正确
+            setTimeout(() => {
+                document.body.style.paddingRight = '0px';
+                document.body.style.overflow = 'auto';
+                document.body.style.marginRight = '0px';
+                document.body.classList.remove('modal-open');
+            }, 0);
+        };
         
-        userModal.addEventListener('hidden.bs.modal', function () {
-            // 模态框隐藏后，确保恢复正常
-            document.body.style.paddingRight = '0px';
-            document.body.style.overflow = 'auto';
+        // 监听所有模态框相关事件，强制重写样式
+        ['show.bs.modal', 'shown.bs.modal', 'hide.bs.modal', 'hidden.bs.modal'].forEach(eventName => {
+            userModal.addEventListener(eventName, function() {
+                // 使用requestAnimationFrame确保在浏览器重绘后执行
+                requestAnimationFrame(() => {
+                    document.body.style.paddingRight = '0px';
+                    document.body.style.overflow = 'auto';
+                    document.body.style.marginRight = '0px';
+                });
+            });
         });
     }
 }
