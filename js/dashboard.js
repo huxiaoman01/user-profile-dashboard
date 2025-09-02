@@ -8,40 +8,29 @@ $(document).ready(function() {
     initializeModalFix();
 });
 
-// 初始化模态框跳跃修复
+// 初始化模态框跳跃修复 - 简化版
 function initializeModalFix() {
-    // 获取滚动条宽度
-    function getScrollbarWidth() {
-        const outer = document.createElement('div');
-        outer.style.visibility = 'hidden';
-        outer.style.overflow = 'scroll';
-        outer.style.msOverflowStyle = 'scrollbar';
-        document.body.appendChild(outer);
-        
-        const inner = document.createElement('div');
-        outer.appendChild(inner);
-        
-        const scrollbarWidth = (outer.offsetWidth - inner.offsetWidth);
-        outer.parentNode.removeChild(outer);
-        
-        return scrollbarWidth;
-    }
-    
-    // 监听模态框事件
     const userModal = document.getElementById('userModal');
     if (userModal) {
-        const scrollbarWidth = getScrollbarWidth();
+        // 简单粗暴的方法：禁用Bootstrap的默认滚动条处理
+        userModal.addEventListener('show.bs.modal', function (e) {
+            // 阻止Bootstrap修改body样式
+            setTimeout(() => {
+                document.body.style.paddingRight = '0px';
+                document.body.style.overflow = 'auto';
+            }, 10);
+        });
         
-        userModal.addEventListener('show.bs.modal', function () {
-            // 模态框显示前，为body添加右侧padding补偿滚动条
-            if (scrollbarWidth > 0) {
-                document.body.style.paddingRight = scrollbarWidth + 'px';
-            }
+        userModal.addEventListener('shown.bs.modal', function () {
+            // 模态框完全显示后，确保body样式正确
+            document.body.style.paddingRight = '0px';
+            document.body.style.overflow = 'auto';
         });
         
         userModal.addEventListener('hidden.bs.modal', function () {
-            // 模态框隐藏后，移除padding
-            document.body.style.paddingRight = '';
+            // 模态框隐藏后，确保恢复正常
+            document.body.style.paddingRight = '0px';
+            document.body.style.overflow = 'auto';
         });
     }
 }

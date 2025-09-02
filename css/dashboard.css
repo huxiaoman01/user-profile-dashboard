@@ -605,27 +605,55 @@ body {
     color: #666;
 }
 
-/* 修复模态框布局跳跃问题 */
+/* 修复模态框布局跳跃问题 - 简化方案 */
 html {
-    /* 强制显示滚动条，避免模态框打开时宽度跳跃 */
-    overflow-y: scroll;
+    /* 方案1：强制始终显示滚动条，这是最简单可靠的方法 */
+    overflow-y: scroll !important;
 }
 
-/* 或者使用更精确的方法：为body预留滚动条宽度 */
-body {
-    /* 在不支持scrollbar-gutter的浏览器中使用备选方案 */
-    scrollbar-gutter: stable;
-    /* 备选方案：计算滚动条宽度并预留 */
-    padding-right: calc(100vw - 100%);
+/* 确保容器不会因为滚动条变化而跳跃 */
+.container-fluid {
+    /* 使用视窗宽度而不是100%，避免滚动条影响 */
+    max-width: 100vw;
     box-sizing: border-box;
 }
 
-/* 当模态框打开时，Bootstrap会给body加上modal-open类 */
+/* 禁用Bootstrap模态框的默认body处理 */
 body.modal-open {
-    /* 移除我们的padding-right，因为Bootstrap会处理 */
+    /* 重写Bootstrap的默认样式，防止其修改padding */
     padding-right: 0 !important;
-    /* 确保没有额外的边距 */
     margin-right: 0 !important;
+    overflow: auto !important; /* 保持滚动功能 */
+}
+
+/* 额外的强制措施：针对所有可能受影响的容器 */
+.modal-open .navbar,
+.modal-open .container-fluid,
+.modal-open .card,
+.modal-open table {
+    /* 防止任何容器因为滚动条变化而改变宽度 */
+    width: auto !important;
+    max-width: none !important;
+    margin-right: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* 特别针对移动端的修复 */
+@media (max-width: 768px) {
+    body.modal-open {
+        /* 移动端通常没有滚动条问题，但保险起见 */
+        position: relative !important;
+        overflow: auto !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    /* 确保移动端容器不受影响 */
+    .modal-open .container-fluid {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+        width: 100% !important;
+    }
 }
 
 /* 滚动条样式 */
