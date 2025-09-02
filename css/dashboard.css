@@ -605,6 +605,29 @@ body {
     color: #666;
 }
 
+/* 修复模态框布局跳跃问题 */
+html {
+    /* 强制显示滚动条，避免模态框打开时宽度跳跃 */
+    overflow-y: scroll;
+}
+
+/* 或者使用更精确的方法：为body预留滚动条宽度 */
+body {
+    /* 在不支持scrollbar-gutter的浏览器中使用备选方案 */
+    scrollbar-gutter: stable;
+    /* 备选方案：计算滚动条宽度并预留 */
+    padding-right: calc(100vw - 100%);
+    box-sizing: border-box;
+}
+
+/* 当模态框打开时，Bootstrap会给body加上modal-open类 */
+body.modal-open {
+    /* 移除我们的padding-right，因为Bootstrap会处理 */
+    padding-right: 0 !important;
+    /* 确保没有额外的边距 */
+    margin-right: 0 !important;
+}
+
 /* 滚动条样式 */
 ::-webkit-scrollbar {
     width: 8px;

@@ -5,7 +5,46 @@ let analyticsData = null;
 // 页面加载完成后执行
 $(document).ready(function() {
     loadAnalyticsData();
+    initializeModalFix();
 });
+
+// 初始化模态框跳跃修复
+function initializeModalFix() {
+    // 获取滚动条宽度
+    function getScrollbarWidth() {
+        const outer = document.createElement('div');
+        outer.style.visibility = 'hidden';
+        outer.style.overflow = 'scroll';
+        outer.style.msOverflowStyle = 'scrollbar';
+        document.body.appendChild(outer);
+        
+        const inner = document.createElement('div');
+        outer.appendChild(inner);
+        
+        const scrollbarWidth = (outer.offsetWidth - inner.offsetWidth);
+        outer.parentNode.removeChild(outer);
+        
+        return scrollbarWidth;
+    }
+    
+    // 监听模态框事件
+    const userModal = document.getElementById('userModal');
+    if (userModal) {
+        const scrollbarWidth = getScrollbarWidth();
+        
+        userModal.addEventListener('show.bs.modal', function () {
+            // 模态框显示前，为body添加右侧padding补偿滚动条
+            if (scrollbarWidth > 0) {
+                document.body.style.paddingRight = scrollbarWidth + 'px';
+            }
+        });
+        
+        userModal.addEventListener('hidden.bs.modal', function () {
+            // 模态框隐藏后，移除padding
+            document.body.style.paddingRight = '';
+        });
+    }
+}
 
 // 加载分析数据
 function loadAnalyticsData() {
