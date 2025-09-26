@@ -622,6 +622,16 @@ body {
     padding: 0.375rem 0.75rem;
 }
 
+/* 隐藏多余的搜索框 - 只保留第一个 */
+#contentTypeTable_wrapper .dataTables_filter {
+    display: none !important;
+}
+
+/* 如果有其他重复的搜索框，也可以用类似方法隐藏 */
+.dataTables_wrapper:not(:first-of-type) .dataTables_filter {
+    display: none !important;
+}
+
 .dataTables_wrapper .dataTables_paginate .paginate_button.current,
 .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
     background: #007bff;

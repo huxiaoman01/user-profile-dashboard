@@ -161,14 +161,26 @@ window.showUserDetail = function(userId) {
             return;
         }
 
+        // 提高用户详情模态框的z-index，确保显示在分类模态框之上
+        modalElement.style.zIndex = '1060';
+
         // 显示模态框
-        const modal = new bootstrap.Modal(modalElement);
+        const modal = new bootstrap.Modal(modalElement, {
+            backdrop: 'static', // 防止点击背景关闭
+            keyboard: true
+        });
         modal.show();
 
         console.log('模态框已显示');
 
         // 初始化新添加的tooltip
         initializeTooltips();
+
+        // 监听模态框关闭事件，关闭时恢复z-index
+        modalElement.addEventListener('hidden.bs.modal', function() {
+            modalElement.style.zIndex = '';
+        }, { once: true });
+
     } catch (error) {
         console.error('显示用户详情失败:', error);
         alert('显示用户详情失败: ' + error.message);
@@ -949,8 +961,8 @@ function initializeContentTypeTable() {
                 { targets: -1, orderable: false, searchable: false }, // 最后一列（详情按钮）不可排序
                 { targets: [2, 3], type: 'num' }
             ],
-            searching: false, // 禁用搜索框，避免与主用户表格重复
-            dom: 'rtip' // 只保留表格、信息和分页，无搜索框
+            searching: true, // 启用搜索框
+            dom: 'frtip' // 标准布局：搜索框、表格、信息和分页
         });
     }
 
@@ -1032,25 +1044,18 @@ function initializeContentTypeFilter() {
 
 // 按类型筛选用户
 function filterContentTypeUsers(type) {
-    const table = $('#contentTypeTable').DataTable();
-
     if (type) {
-        // 设置筛选条件
-        table.column(1).search(type).draw();
-        $('#contentTypeFilter').val(type);
+        // 显示分类用户模态框
+        showCategoryUsersModal(type);
     } else {
-        // 清除筛选
+        // 清除筛选（保留原有功能用于筛选器）
+        const table = $('#contentTypeTable').DataTable();
         table.column(1).search('').draw();
         $('#contentTypeFilter').val('');
+
+        // 更新移动端列表
+        generateMobileContentTypeList(analyticsData.users);
     }
-
-    // 更新移动端列表
-    const filteredUsers = analyticsData.users.filter(user => {
-        if (!type) return true;
-        return user.dimensions?.content_type?.type === type;
-    });
-
-    generateMobileContentTypeList(filteredUsers);
 }
 
 // 初始化导出功能
@@ -1106,4 +1111,155 @@ function exportContentTypeData() {
     link.click();
 
     console.log('发言类型数据导出完成');
+}
+
+// ===== 分类用户模态框相关功能 =====
+
+// 显示分类用户模态框
+function showCategoryUsersModal(type) {
+    if (!analyticsData || !analyticsData.users) {
+        console.error('数据未加载，无法显示分类用户');
+        return;
+    }
+
+    console.log('显示分类用户模态框:', type);
+
+    // 筛选该分类的用户
+    const categoryUsers = analyticsData.users.filter(user => {
+        return user.dimensions?.content_type?.type === type;
+    });
+
+    // 设置模态框标题和用户数量
+    $('#categoryUsersTitle').text(`${type} - 用户列表`);
+    $('#categoryUserCount').text(`共${categoryUsers.length}位用户`);
+
+    // 生成表格数据
+    generateCategoryUsersTable(categoryUsers, type);
+
+    // 生成移动端列表
+    generateCategoryUsersMobileList(categoryUsers, type);
+
+    // 绑定导出功能
+    $('#exportCategoryUsers').off('click').on('click', function() {
+        exportCategoryUsers(categoryUsers, type);
+    });
+
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('categoryUsersModal'));
+    modal.show();
+}
+
+// 生成分类用户表格
+function generateCategoryUsersTable(users, type) {
+    // 桌面端表格数据
+    const tableData = users.map(user => {
+        return [
+            user.nickname,
+            user.message_count || 0,
+            user.main_group || '未知群组',
+            getContentTypeDescription(type),
+            `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
+        ];
+    });
+
+    // 销毁现有表格
+    if ($.fn.DataTable.isDataTable('#categoryUsersTable')) {
+        $('#categoryUsersTable').DataTable().destroy();
+    }
+
+    // 初始化新表格
+    $('#categoryUsersTable').DataTable({
+        data: tableData,
+        language: {
+            url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/zh.json'
+        },
+        pageLength: 10,
+        responsive: true,
+        order: [[1, 'desc']], // 按消息数排序
+        columnDefs: [
+            { targets: -1, orderable: false, searchable: false }, // 最后一列（详情按钮）不可排序
+            { targets: [1], type: 'num' }
+        ],
+        searching: true, // 启用搜索
+        dom: 'frtip' // 搜索框、表格、信息和分页
+    });
+}
+
+// 生成分类用户移动端列表
+function generateCategoryUsersMobileList(users, type) {
+    const container = $('#categoryUsersListMobile');
+    container.empty();
+
+    if (users.length === 0) {
+        container.append(`
+            <div class="text-center py-4">
+                <i class="fas fa-users text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-3">该分类暂无用户</p>
+            </div>
+        `);
+        return;
+    }
+
+    users.forEach(user => {
+        const itemHtml = `
+            <div class="card mb-2">
+                <div class="card-body py-2">
+                    <div class="row align-items-center">
+                        <div class="col-6">
+                            <div class="fw-bold">${user.nickname}</div>
+                            <div class="small text-muted">${user.main_group || '未知群组'}</div>
+                            <span class="badge bg-info">${type}</span>
+                        </div>
+                        <div class="col-3 text-center">
+                            <div class="fw-bold text-primary">${user.message_count || 0}</div>
+                            <div class="small text-muted">消息数</div>
+                        </div>
+                        <div class="col-3">
+                            <button class="btn btn-primary btn-sm w-100" onclick="showUserDetail('${user.user_id}')">
+                                详情
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.append(itemHtml);
+    });
+}
+
+// 导出分类用户数据
+function exportCategoryUsers(users, type) {
+    if (!users || users.length === 0) {
+        alert('该分类暂无用户数据');
+        return;
+    }
+
+    // 准备导出数据
+    const exportData = {
+        分类信息: {
+            类型名称: type,
+            类型描述: getContentTypeDescription(type),
+            用户数量: users.length,
+            导出时间: new Date().toLocaleString()
+        },
+        用户列表: users.map(user => ({
+            用户昵称: user.nickname,
+            消息数量: user.message_count || 0,
+            主要群组: user.main_group || '未知',
+            用户ID: user.user_id,
+            平均消息长度: user.avg_message_length ? user.avg_message_length.toFixed(1) : 0,
+            参与群组数: user.all_groups ? user.all_groups.length : 1
+        }))
+    };
+
+    // 创建下载
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `${type}_用户列表_${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+
+    console.log(`${type} 分类用户数据导出完成`);
 }

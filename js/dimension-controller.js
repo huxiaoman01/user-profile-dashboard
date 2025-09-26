@@ -1555,9 +1555,6 @@ class DimensionController {
             }
 
             $('#usersTable').DataTable(tableConfig);
-
-            // 清理重复的搜索框
-            this.cleanupDuplicateSearchBoxes();
         }
 
         // 初始化移动端表格
@@ -1610,45 +1607,9 @@ class DimensionController {
             }
 
             $('#usersTableMobile').DataTable(mobileTableConfig);
-
-            // 清理重复的搜索框
-            this.cleanupDuplicateSearchBoxes();
         }
     }
 
-    // 清理重复的搜索框
-    cleanupDuplicateSearchBoxes() {
-        // 延迟执行，确保DataTables完全初始化
-        setTimeout(() => {
-            // 清理桌面端表格的重复搜索框 - 只保留.top容器中的搜索框
-            const desktopFilters = $('#usersTable_wrapper .dataTables_filter');
-            if (desktopFilters.length > 1) {
-                console.log(`发现${desktopFilters.length}个桌面端搜索框，只保留顶部的`);
-                // 移除不在.top容器中的搜索框
-                desktopFilters.each(function(index, filter) {
-                    if (!$(filter).closest('.top').length) {
-                        $(filter).remove();
-                        console.log('移除了底部搜索框');
-                    }
-                });
-            }
-
-            // 清理移动端表格的重复搜索框 - 只保留.top容器中的搜索框
-            const mobileFilters = $('#usersTableMobile_wrapper .dataTables_filter');
-            if (mobileFilters.length > 1) {
-                console.log(`发现${mobileFilters.length}个移动端搜索框，只保留顶部的`);
-                // 移除不在.top容器中的搜索框
-                mobileFilters.each(function(index, filter) {
-                    if (!$(filter).closest('.top').length) {
-                        $(filter).remove();
-                        console.log('移除了移动端底部搜索框');
-                    }
-                });
-            }
-
-            console.log('搜索框清理完成');
-        }, 200);
-    }
 
     // 格式化用户标签
     formatUserTags(tags) {
