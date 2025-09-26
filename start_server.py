@@ -11,32 +11,41 @@ import webbrowser
 import os
 import sys
 
-def start_server(port=8080):
+def start_server(port=8080, max_attempts=5):
     """启动HTTP服务器"""
     handler = http.server.SimpleHTTPRequestHandler
-    
-    try:
-        with socketserver.TCPServer(("", port), handler) as httpd:
-            print(f"小小纺用户画像分析平台已启动")
-            print(f"访问地址: http://localhost:{port}")
-            print(f"服务目录: {os.getcwd()}")
-            print(f"按 Ctrl+C 停止服务器\n")
-            
-            # 自动打开浏览器
-            webbrowser.open(f'http://localhost:{port}')
-            
-            httpd.serve_forever()
-            
-    except KeyboardInterrupt:
-        print("\n服务器已停止")
-        sys.exit(0)
-    except OSError as e:
-        if "Address already in use" in str(e):
-            print(f"端口 {port} 已被占用，尝试端口 {port+1}")
-            start_server(port+1)
-        else:
-            print(f"启动服务器失败: {e}")
-            sys.exit(1)
+    original_port = port
+
+    for attempt in range(max_attempts):
+        try:
+            with socketserver.TCPServer(("", port), handler) as httpd:
+                print(f"小小纺用户画像分析平台已启动")
+                print(f"访问地址: http://localhost:{port}")
+                if port != original_port:
+                    print(f"注意: 原端口 {original_port} 被占用，已改用端口 {port}")
+                print(f"服务目录: {os.getcwd()}")
+                print(f"按 Ctrl+C 停止服务器\n")
+
+                # 自动打开浏览器
+                webbrowser.open(f'http://localhost:{port}')
+
+                httpd.serve_forever()
+
+        except KeyboardInterrupt:
+            print("\n服务器已停止")
+            sys.exit(0)
+        except OSError as e:
+            if "Address already in use" in str(e):
+                print(f"端口 {port} 已被占用", end="")
+                if attempt < max_attempts - 1:
+                    port += 1
+                    print(f"，尝试端口 {port}")
+                else:
+                    print(f"\n已尝试 {max_attempts} 个端口都被占用，请手动关闭其他服务或稍后重试")
+                    sys.exit(1)
+            else:
+                print(f"启动服务器失败: {e}")
+                sys.exit(1)
 
 if __name__ == "__main__":
     # 检查是否有数据文件

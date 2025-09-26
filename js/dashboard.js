@@ -1,12 +1,111 @@
 // 小小纺用户画像分析平台 - 主要逻辑
 
+console.log('🚀 dashboard.js 文件开始加载...');
+
 let analyticsData = null;
 let dimensionController = null;
 
+// 立即创建一个全局测试函数
+window.jsLoadTest = function() {
+    console.log('✅ JavaScript 文件加载成功');
+    return 'dashboard.js 已加载';
+};
+
+// 全局侧边栏切换函数
+window.toggleSidebar = function() {
+    console.log('🔄 toggleSidebar 被调用');
+
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const toggleIcon = document.getElementById('toggleIcon');
+
+    // 详细的元素检查
+    console.log('🔍 元素检查:', {
+        sidebar: sidebar ? '找到' : '未找到',
+        mainContent: mainContent ? '找到' : '未找到',
+        toggleIcon: toggleIcon ? '找到' : '未找到',
+        toggleIconClass: toggleIcon ? toggleIcon.className : 'N/A'
+    });
+
+    if (!sidebar || !mainContent) {
+        console.error('❌ 找不到侧边栏或主内容元素');
+        return;
+    }
+
+    // 获取当前状态
+    const isCurrentlyCollapsed = sidebar.classList.contains('collapsed');
+    const currentSidebarWidth = sidebar.style.width;
+    const currentMarginLeft = mainContent.style.marginLeft;
+
+    console.log('📄 当前详细状态:', {
+        isCollapsed: isCurrentlyCollapsed,
+        sidebarClasses: Array.from(sidebar.classList),
+        mainContentClasses: Array.from(mainContent.classList),
+        currentSidebarWidth: currentSidebarWidth,
+        currentMarginLeft: currentMarginLeft,
+        toggleIconCurrentClass: toggleIcon ? toggleIcon.className : 'N/A'
+    });
+
+    // 切换类
+    if (isCurrentlyCollapsed) {
+        // 当前是收缩状态，需要展开
+        sidebar.classList.remove('collapsed');
+        mainContent.classList.remove('expanded');
+        sidebar.style.width = '250px';
+        mainContent.style.marginLeft = '250px';
+
+        if (toggleIcon) {
+            const oldClass = toggleIcon.className;
+            toggleIcon.className = 'fas fa-chevron-left';
+            console.log('🔄 图标更新 (展开):', {
+                旧图标: oldClass,
+                新图标: toggleIcon.className,
+                更新成功: toggleIcon.className === 'fas fa-chevron-left'
+            });
+        } else {
+            console.error('❌ toggleIcon 元素不存在，无法更新图标');
+        }
+        console.log('🔓 展开侧边栏完成');
+    } else {
+        // 当前是展开状态，需要收缩
+        sidebar.classList.add('collapsed');
+        mainContent.classList.add('expanded');
+        sidebar.style.width = '60px';
+        mainContent.style.marginLeft = '60px';
+
+        if (toggleIcon) {
+            const oldClass = toggleIcon.className;
+            toggleIcon.className = 'fas fa-chevron-right';
+            console.log('🔄 图标更新 (收缩):', {
+                旧图标: oldClass,
+                新图标: toggleIcon.className,
+                更新成功: toggleIcon.className === 'fas fa-chevron-right'
+            });
+        } else {
+            console.error('❌ toggleIcon 元素不存在，无法更新图标');
+        }
+        console.log('🔒 收缩侧边栏完成');
+    }
+
+    console.log('📊 切换后状态:', {
+        collapsed: sidebar.classList.contains('collapsed'),
+        expanded: mainContent.classList.contains('expanded'),
+        sidebarWidth: sidebar.style.width,
+        mainContentMarginLeft: mainContent.style.marginLeft
+    });
+
+    return true;
+};
+
 // 页面加载完成后执行
 $(document).ready(function() {
+    console.log('📄 DOM 加载完成，开始执行初始化...');
+
     loadAnalyticsData();
     initializeModalFix();
+    initializeSidebar();
+
+    console.log('🎯 所有初始化函数已调用');
 });
 
 // 初始化维度控制器
@@ -24,6 +123,63 @@ function initializeDimensionController() {
     }
 }
 
+// 全局显示用户详情函数（供按钮点击使用）
+window.showUserDetail = function(userId) {
+    console.log('点击查看详情, userId:', userId);
+
+    // 检查数据是否加载
+    if (!analyticsData) {
+        console.error('analyticsData 未加载');
+        alert('数据未加载完成，请稍后再试');
+        return;
+    }
+
+    if (!analyticsData.users) {
+        console.error('analyticsData.users 不存在');
+        alert('用户数据不存在');
+        return;
+    }
+
+    const user = analyticsData.users.find(u => u.user_id === userId);
+    if (!user) {
+        console.error('找不到用户:', userId);
+        alert(`找不到用户 ID: ${userId}`);
+        return;
+    }
+
+    console.log('找到用户:', user);
+
+    try {
+        const detailHtml = generateUserDetailHtml(user, userId);
+        $('#modalUserDetail').html(detailHtml);
+
+        // 检查模态框元素是否存在
+        const modalElement = document.getElementById('userModal');
+        if (!modalElement) {
+            console.error('模态框元素不存在');
+            alert('模态框初始化失败');
+            return;
+        }
+
+        // 显示模态框
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+
+        console.log('模态框已显示');
+
+        // 初始化新添加的tooltip
+        initializeTooltips();
+    } catch (error) {
+        console.error('显示用户详情失败:', error);
+        alert('显示用户详情失败: ' + error.message);
+    }
+};
+
+// 移动端显示用户详情
+window.showUserDetailMobile = function(userId) {
+    window.showUserDetail(userId); // 使用相同的逻辑
+};
+
 // 初始化模态框跳跃修复 - 彻底阻止Bootstrap默认行为
 function initializeModalFix() {
     const userModal = document.getElementById('userModal');
@@ -34,24 +190,24 @@ function initializeModalFix() {
             keyboard: true,
             focus: true
         });
-        
+
         // 完全阻止Bootstrap的默认滚动处理
         const originalShow = modalInstance.show;
         const originalHide = modalInstance.hide;
-        
+
         modalInstance.show = function() {
             // 保存当前body样式
             const currentPadding = document.body.style.paddingRight;
             const currentOverflow = document.body.style.overflow;
-            
+
             // 调用原始方法
             originalShow.call(this);
-            
+
             // 立即恢复body样式
             document.body.style.paddingRight = currentPadding;
             document.body.style.overflow = 'auto';
             document.body.classList.remove('modal-open');
-            
+
             // 强制重写
             setTimeout(() => {
                 document.body.style.paddingRight = '0px';
@@ -59,7 +215,7 @@ function initializeModalFix() {
                 document.body.style.marginRight = '0px';
             }, 0);
         };
-        
+
         modalInstance.hide = function() {
             originalHide.call(this);
             // 确保隐藏后样式正确
@@ -70,7 +226,7 @@ function initializeModalFix() {
                 document.body.classList.remove('modal-open');
             }, 0);
         };
-        
+
         // 监听所有模态框相关事件，强制重写样式
         ['show.bs.modal', 'shown.bs.modal', 'hide.bs.modal', 'hidden.bs.modal'].forEach(eventName => {
             userModal.addEventListener(eventName, function() {
@@ -85,12 +241,84 @@ function initializeModalFix() {
     }
 }
 
+// 初始化侧边栏伸缩功能
+function initializeSidebar() {
+    console.log('🔧 开始初始化侧边栏功能...');
+
+    // 立即创建测试函数，确保它存在
+    window.testSidebarToggle = function() {
+        console.log('🧪 手动测试函数被调用');
+        return 'testSidebarToggle 函数已加载';
+    };
+
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const toggleIcon = document.getElementById('toggleIcon');
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+
+    console.log('侧边栏元素检查:', {
+        sidebar: sidebar ? '找到' : '未找到',
+        mainContent: mainContent ? '找到' : '未找到',
+        sidebarToggle: sidebarToggle ? '找到' : '未找到',
+        toggleIcon: toggleIcon ? '找到' : '未找到'
+    });
+
+    // 注释掉旧的事件监听器，避免与内联onclick冲突
+    console.log('✅ 侧边栏初始化完成，使用内联onclick事件处理');
+
+    // 旧的测试函数已不需要，由window.toggleSidebar()替代
+    console.log('🎯 侧边栏功能已就绪');
+
+    // 移动端菜单切换
+    if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('show');
+
+            // 显示/隐藏遮罩层
+            let overlay = document.querySelector('.sidebar-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'sidebar-overlay';
+                document.body.appendChild(overlay);
+
+                // 点击遮罩层关闭侧边栏
+                overlay.addEventListener('click', function() {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                });
+            }
+
+            overlay.classList.toggle('show');
+        });
+    }
+
+    // 窗口尺寸改变时的响应式处理
+    window.addEventListener('resize', function() {
+        if (window.innerWidth <= 768) {
+            // 移动端：隐藏侧边栏
+            sidebar.classList.remove('show');
+            const overlay = document.querySelector('.sidebar-overlay');
+            if (overlay) {
+                overlay.classList.remove('show');
+            }
+        } else {
+            // 桌面端：清除移动端类
+            sidebar.classList.remove('show');
+            const overlay = document.querySelector('.sidebar-overlay');
+            if (overlay) {
+                overlay.classList.remove('show');
+            }
+        }
+    });
+}
+
 // 加载分析数据
 function loadAnalyticsData() {
     console.log('开始加载分析数据...');
 
     $.ajax({
-        url: 'data/analytics.json',
+        url: 'data/analytics_with_content_types.json',
         dataType: 'json',
         cache: false,
         timeout: 30000,
@@ -110,7 +338,7 @@ function loadAnalyticsData() {
             errorThrown: errorThrown,
             responseText: jqXHR.responseText ? jqXHR.responseText.substring(0, 200) : 'null'
         });
-        showError('数据加载失败，请确保已运行数据处理脚本生成analytics.json文件<br>错误详情: ' + textStatus + ' - ' + errorThrown);
+        showError('数据加载失败，请确保已运行数据处理脚本生成analytics_with_content_types.json文件<br>错误详情: ' + textStatus + ' - ' + errorThrown);
     });
 }
 
@@ -140,9 +368,14 @@ function initializeDashboard() {
             console.error('dimensionController is null');
         }
 
-        // 生成词云
-        generateWordCloud();
-        console.log('词云生成完成');
+        // 删除词云功能按需求
+
+        // 如果当前维度是发言类型，初始化发言类型分析
+        if (dimensionController && dimensionController.currentDimension === 'content_type') {
+            setTimeout(() => {
+                initializeContentTypeAnalysis();
+            }, 500);
+        }
 
         console.log('仪表板初始化完成');
     } catch (error) {
@@ -202,7 +435,9 @@ function initializeUsersTable() {
             columnDefs: [
                 { targets: [7], orderable: false, searchable: false },
                 { targets: [2, 3], type: 'num' }
-            ]
+            ],
+            searching: true, // 启用搜索框
+            dom: 'frtip' // 保留搜索框，移除长度选择器，保留表格、信息和分页
         });
     }
     
@@ -221,7 +456,9 @@ function initializeUsersTable() {
                 { targets: [1], type: 'num' }
             ],
             lengthChange: false,
-            info: false
+            info: false,
+            searching: true,
+            paging: false // 移动端禁用分页
         });
     }
 }
@@ -369,36 +606,6 @@ function toggleImpression(impressionId) {
     }
 }
 
-// 显示用户详情（桌面端）
-function showUserDetail(userId) {
-    const user = analyticsData.users.find(u => u.user_id === userId);
-    if (!user) return;
-    
-    const detailHtml = generateUserDetailHtml(user, userId);
-    $('#userDetail').html(detailHtml);
-    
-    // 同时在模态框中显示
-    $('#modalUserDetail').html(detailHtml);
-    
-    // 初始化新添加的tooltip
-    initializeTooltips();
-}
-
-// 显示用户详情（移动端，使用模态框）
-function showUserDetailMobile(userId) {
-    const user = analyticsData.users.find(u => u.user_id === userId);
-    if (!user) return;
-    
-    const detailHtml = generateUserDetailHtml(user, userId);
-    $('#modalUserDetail').html(detailHtml);
-    
-    // 显示模态框
-    const modal = new bootstrap.Modal(document.getElementById('userModal'));
-    modal.show();
-    
-    // 初始化新添加的tooltip
-    initializeTooltips();
-}
 
 // 生成用户详情HTML
 function generateUserDetailHtml(user, userId) {
@@ -511,42 +718,7 @@ function initializeTooltips() {
     const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 }
 
-// 生成词云（HTML+CSS实现）
-function generateWordCloud() {
-    const wordCloudData = analyticsData.keyword_cloud;
-    
-    if (!wordCloudData || wordCloudData.length === 0) {
-        $('#wordCloudContainer').html('<p class="text-muted">暂无词云数据</p>');
-        return;
-    }
-    
-    // 计算最大权重用于缩放
-    const maxWeight = Math.max(...wordCloudData.map(item => item.weight));
-    
-    let wordCloudHtml = '<div class="word-cloud-wrapper">';
-    
-    wordCloudData.forEach((item, index) => {
-        // 根据屏幕大小调整字体计算
-        const isMobile = window.innerWidth <= 768;
-        const baseFontSize = isMobile ? 10 : 12;
-        const maxScaleFactor = isMobile ? 24 : 32;
-        
-        const fontSize = Math.max(baseFontSize, (item.weight / maxWeight) * maxScaleFactor + baseFontSize);
-        const colors = ['#007bff', '#28a745', '#17a2b8', '#ffc107', '#dc3545', '#6610f2', '#fd7e14', '#20c997'];
-        const color = colors[index % colors.length];
-        
-        wordCloudHtml += `
-            <span class="word-cloud-item" 
-                  style="font-size: ${fontSize}px; color: ${color}; margin: 5px;"
-                  title="${item.text}: ${item.weight}次">
-                ${item.text}
-            </span>
-        `;
-    });
-    
-    wordCloudHtml += '</div>';
-    $('#wordCloudContainer').html(wordCloudHtml);
-}
+// 删除词云功能（按用户需求）
 
 // 显示错误信息
 function showError(message) {
@@ -592,4 +764,428 @@ function exportData() {
 // 刷新数据
 function refreshData() {
     location.reload();
+}
+
+// ===== 发言类型分析相关功能 =====
+
+// 初始化发言类型分析
+function initializeContentTypeAnalysis() {
+    if (!analyticsData || !analyticsData.users) {
+        console.error('数据未加载，无法初始化发言类型分析');
+        return;
+    }
+
+    console.log('初始化发言类型分析...');
+
+    try {
+        generateContentTypeStats();
+        createContentTypeCharts();
+        initializeContentTypeTable();
+        initializeContentTypeFilter();
+        initializeContentTypeExport();
+
+        console.log('发言类型分析初始化完成');
+    } catch (error) {
+        console.error('发言类型分析初始化失败:', error);
+    }
+}
+
+// 生成发言类型统计卡片
+function generateContentTypeStats() {
+    const contentTypeStats = {};
+    const totalUsers = analyticsData.users.length;
+
+    // 统计各类型数量
+    analyticsData.users.forEach(user => {
+        const contentType = user.dimensions?.content_type?.type || '未知';
+        contentTypeStats[contentType] = (contentTypeStats[contentType] || 0) + 1;
+    });
+
+    // 类型图标和颜色映射
+    const typeConfig = {
+        '技术型': { icon: 'fas fa-code', color: 'primary' },
+        '考试型': { icon: 'fas fa-graduation-cap', color: 'success' },
+        '学习方法型': { icon: 'fas fa-lightbulb', color: 'info' },
+        '生活方式型': { icon: 'fas fa-heart', color: 'danger' },
+        '娱乐搞笑型': { icon: 'fas fa-laugh', color: 'warning' },
+        '闲聊型': { icon: 'fas fa-comments', color: 'secondary' },
+        '表情包型': { icon: 'fas fa-smile', color: 'success' },
+        '社会技巧型': { icon: 'fas fa-users', color: 'dark' },
+        '未知': { icon: 'fas fa-question', color: 'muted' }
+    };
+
+    const statsContainer = $('#contentTypeStats');
+    statsContainer.empty();
+
+    // 生成统计卡片
+    Object.entries(contentTypeStats).forEach(([type, count]) => {
+        const config = typeConfig[type] || typeConfig['未知'];
+        const percentage = ((count / totalUsers) * 100).toFixed(1);
+
+        const cardHtml = `
+            <div class="col-xl-3 col-lg-4 col-md-6 mb-3">
+                <div class="card bg-light border-${config.color} h-100">
+                    <div class="card-body text-center">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <i class="${config.icon} text-${config.color}" style="font-size: 2rem;"></i>
+                        </div>
+                        <h5 class="card-title">${type}</h5>
+                        <h3 class="text-${config.color}">${count}</h3>
+                        <p class="text-muted mb-0">${percentage}%</p>
+                        <button class="btn btn-outline-${config.color} btn-sm mt-2"
+                                onclick="filterContentTypeUsers('${type}')">
+                            查看详情
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        statsContainer.append(cardHtml);
+    });
+}
+
+// 创建发言类型图表
+function createContentTypeCharts() {
+    createContentTypePieChart();
+    createContentTypeBarChart();
+}
+
+// 创建发言类型饼图
+function createContentTypePieChart() {
+    const canvas = document.getElementById('contentTypeChart');
+    if (!canvas) {
+        console.error('找不到发言类型图表画布');
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
+
+    // 统计数据
+    const contentTypeStats = {};
+    analyticsData.users.forEach(user => {
+        const contentType = user.dimensions?.content_type?.type || '未知';
+        contentTypeStats[contentType] = (contentTypeStats[contentType] || 0) + 1;
+    });
+
+    // 颜色配置
+    const colors = [
+        '#007bff', '#28a745', '#17a2b8', '#dc3545',
+        '#ffc107', '#6c757d', '#20c997', '#6f42c1'
+    ];
+
+    const labels = Object.keys(contentTypeStats);
+    const data = Object.values(contentTypeStats);
+
+    // 销毁现有图表
+    if (window.contentTypePieChart) {
+        window.contentTypePieChart.destroy();
+    }
+
+    window.contentTypePieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors.slice(0, labels.length),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return `${context.label}: ${context.parsed}人 (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 创建发言类型柱状图
+function createContentTypeBarChart() {
+    const canvas = document.getElementById('contentTypeBarChart');
+    if (!canvas) {
+        console.error('找不到发言类型柱状图画布');
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
+
+    // 统计数据
+    const contentTypeStats = {};
+    analyticsData.users.forEach(user => {
+        const contentType = user.dimensions?.content_type?.type || '未知';
+        contentTypeStats[contentType] = (contentTypeStats[contentType] || 0) + 1;
+    });
+
+    // 按数量排序
+    const sortedEntries = Object.entries(contentTypeStats).sort(([,a], [,b]) => b - a);
+    const labels = sortedEntries.map(([type]) => type);
+    const data = sortedEntries.map(([,count]) => count);
+
+    // 销毁现有图表
+    if (window.contentTypeBarChart) {
+        window.contentTypeBarChart.destroy();
+    }
+
+    window.contentTypeBarChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '用户数量',
+                data: data,
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.parsed.y}人`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                },
+                x: {
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 0
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 初始化发言类型表格
+function initializeContentTypeTable() {
+    const users = analyticsData.users;
+
+    // 桌面端表格数据
+    const tableData = users.map(user => {
+        const contentType = user.dimensions?.content_type || {};
+        const confidence = contentType.confidence ? (contentType.confidence * 100).toFixed(1) + '%' : '未知';
+
+        return [
+            user.nickname,
+            `<span class="badge bg-info">${contentType.type || '未知'}</span>`,
+            confidence,
+            user.message_count || 0,
+            user.main_group || '未知群组',
+            getContentTypeDescription(contentType.type),
+            `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
+        ];
+    });
+
+    // 初始化桌面端表格
+    if ($('#contentTypeTable').length > 0) {
+        // 销毁现有表格
+        if ($.fn.DataTable.isDataTable('#contentTypeTable')) {
+            $('#contentTypeTable').DataTable().destroy();
+        }
+
+        $('#contentTypeTable').DataTable({
+            data: tableData,
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/zh.json'
+            },
+            pageLength: 15,
+            responsive: true,
+            order: [[3, 'desc']], // 按消息数排序
+            columnDefs: [
+                { targets: [6], orderable: false, searchable: false },
+                { targets: [2, 3], type: 'num' }
+            ],
+            searching: true, // 启用搜索框
+            dom: 'frtip' // 保留搜索框，移除长度选择器，保留表格、信息和分页
+        });
+    }
+
+    // 生成移动端列表
+    generateMobileContentTypeList(users);
+}
+
+// 生成移动端发言类型列表
+function generateMobileContentTypeList(users) {
+    const container = $('#contentTypeListMobile');
+    container.empty();
+
+    users.forEach(user => {
+        const contentType = user.dimensions?.content_type || {};
+        const confidence = contentType.confidence ? (contentType.confidence * 100).toFixed(1) + '%' : '未知';
+
+        const itemHtml = `
+            <div class="card mb-2">
+                <div class="card-body py-2">
+                    <div class="row align-items-center">
+                        <div class="col-7">
+                            <div class="fw-bold">${user.nickname}</div>
+                            <div class="small text-muted">${user.main_group || '未知群组'}</div>
+                            <span class="badge bg-info">${contentType.type || '未知'}</span>
+                            <small class="text-muted ms-2">${confidence}</small>
+                        </div>
+                        <div class="col-3 text-center">
+                            <div class="fw-bold text-primary">${user.message_count || 0}</div>
+                            <div class="small text-muted">消息数</div>
+                        </div>
+                        <div class="col-2">
+                            <button class="btn btn-primary btn-sm w-100" onclick="showUserDetail('${user.user_id}')">
+                                详情
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.append(itemHtml);
+    });
+}
+
+// 获取发言类型描述
+function getContentTypeDescription(type) {
+    const descriptions = {
+        '技术型': '偏向技术讨论和编程相关',
+        '考试型': '关注考试、成绩等学习评估',
+        '学习方法型': '分享学习技巧和方法经验',
+        '生活方式型': '讨论生活习惯和健康话题',
+        '娱乐搞笑型': '喜欢分享趣事和搞笑内容',
+        '闲聊型': '日常随意聊天为主',
+        '表情包型': '经常使用表情包交流',
+        '社会技巧型': '关注人际交往和社交技能'
+    };
+    return descriptions[type] || '暂无描述';
+}
+
+// 初始化发言类型筛选器
+function initializeContentTypeFilter() {
+    const filterSelect = $('#contentTypeFilter');
+
+    // 获取所有类型
+    const contentTypes = new Set();
+    analyticsData.users.forEach(user => {
+        const type = user.dimensions?.content_type?.type;
+        if (type) contentTypes.add(type);
+    });
+
+    // 添加选项
+    contentTypes.forEach(type => {
+        filterSelect.append(`<option value="${type}">${type}</option>`);
+    });
+
+    // 绑定筛选事件
+    filterSelect.on('change', function() {
+        const selectedType = $(this).val();
+        filterContentTypeUsers(selectedType);
+    });
+}
+
+// 按类型筛选用户
+function filterContentTypeUsers(type) {
+    const table = $('#contentTypeTable').DataTable();
+
+    if (type) {
+        // 设置筛选条件
+        table.column(1).search(type).draw();
+        $('#contentTypeFilter').val(type);
+    } else {
+        // 清除筛选
+        table.column(1).search('').draw();
+        $('#contentTypeFilter').val('');
+    }
+
+    // 更新移动端列表
+    const filteredUsers = analyticsData.users.filter(user => {
+        if (!type) return true;
+        return user.dimensions?.content_type?.type === type;
+    });
+
+    generateMobileContentTypeList(filteredUsers);
+}
+
+// 初始化导出功能
+function initializeContentTypeExport() {
+    $('#exportContentTypeData').on('click', function() {
+        exportContentTypeData();
+    });
+}
+
+// 导出发言类型数据
+function exportContentTypeData() {
+    if (!analyticsData) {
+        alert('数据未加载完成');
+        return;
+    }
+
+    // 准备导出数据
+    const exportData = {
+        总览: {
+            总用户数: analyticsData.users.length,
+            导出时间: new Date().toLocaleString(),
+            数据说明: '用户发言类型分析结果'
+        },
+        类型统计: {},
+        用户详情: []
+    };
+
+    // 统计各类型数量
+    const contentTypeStats = {};
+    analyticsData.users.forEach(user => {
+        const type = user.dimensions?.content_type?.type || '未知';
+        contentTypeStats[type] = (contentTypeStats[type] || 0) + 1;
+
+        // 添加用户详情
+        exportData.用户详情.push({
+            用户昵称: user.nickname,
+            发言类型: type,
+            置信度: user.dimensions?.content_type?.confidence || 0,
+            消息数量: user.message_count || 0,
+            主要群组: user.main_group || '未知',
+            类型描述: getContentTypeDescription(type)
+        });
+    });
+
+    exportData.类型统计 = contentTypeStats;
+
+    // 创建下载
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `发言类型分析_${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+
+    console.log('发言类型数据导出完成');
 }

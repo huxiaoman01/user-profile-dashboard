@@ -98,6 +98,29 @@ body {
     background: linear-gradient(45deg, #17a2b8, #138496) !important;
 }
 
+/* 数据洞察区域样式 */
+#compactInsights {
+    color: #495057;
+}
+
+#compactInsights .insight-item {
+    margin-right: 8px;
+}
+
+#compactInsights strong {
+    color: #007bff;
+    font-weight: 600;
+}
+
+.card.border-info {
+    border-color: #17a2b8 !important;
+    background: linear-gradient(135deg, #f8fdff 0%, #e3f9fd 100%);
+}
+
+.card.border-info .card-body {
+    background: rgba(23, 162, 184, 0.02);
+}
+
 .card.bg-warning {
     background: linear-gradient(45deg, #ffc107, #e0a800) !important;
 }
@@ -191,35 +214,97 @@ body {
     height: 300px;
 }
 
-/* 词云容器 */
-#wordCloudContainer {
-    min-height: 250px;
-    background-color: #f8f9fa;
-    border-radius: 10px;
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+/* 词云功能已按需求删除 */
 
-.word-cloud-wrapper {
-    text-align: center;
-    line-height: 1.6;
-}
-
-.word-cloud-item {
-    display: inline-block;
-    font-weight: 600;
-    cursor: pointer;
+/* 发言类型分析样式 */
+.content-type-card {
     transition: all 0.3s ease;
-    margin: 3px 8px !important;
-    padding: 2px 6px;
-    border-radius: 4px;
+    cursor: pointer;
 }
 
-.word-cloud-item:hover {
-    background-color: rgba(0,123,255,0.1);
-    transform: scale(1.1);
+.content-type-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.content-type-icon {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+}
+
+.content-type-stats {
+    padding: 20px;
+}
+
+.content-type-badge {
+    font-size: 0.9rem;
+    padding: 6px 12px;
+}
+
+.mobile-content-type-item {
+    border-left: 4px solid #007bff;
+    margin-bottom: 10px;
+}
+
+.content-type-filter-section {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+/* 图表容器优化 */
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin: 10px 0;
+}
+
+.chart-container canvas {
+    max-height: 280px !important;
+}
+
+/* 类型表格样式 */
+.content-type-table {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.content-type-table th {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    color: #1565c0;
+    font-weight: 600;
+    border: none;
+    padding: 12px;
+}
+
+.content-type-table td {
+    padding: 10px 12px;
+    vertical-align: middle;
+    border-color: #f0f0f0;
+}
+
+.content-type-table .badge {
+    font-size: 0.85rem;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+    .content-type-card {
+        margin-bottom: 15px;
+    }
+
+    .content-type-icon {
+        font-size: 2rem;
+    }
+
+    .chart-container {
+        height: 250px;
+    }
+
+    .content-type-filter-section {
+        padding: 10px;
+    }
 }
 
 /* 响应式设计 */
@@ -385,17 +470,7 @@ body {
         height: 250px;
     }
     
-    #wordCloudContainer {
-        min-height: 200px;
-        padding: 15px;
-    }
-    
-    .word-cloud-item {
-        margin: 2px 4px !important;
-        /* 移动端保持动态字体大小，只进行适度缩放 */
-        transform: scale(0.85);
-        transform-origin: center;
-    }
+    /* 移动端词云样式已删除 */
     
     /* 热力图响应式 */
     .heatmap-container {
@@ -704,6 +779,193 @@ body.modal-open {
     background: #555;
 }
 
+/* 左侧侧边栏样式 */
+.sidebar {
+    position: fixed;
+    top: 70px; /* 避免被导航栏遮挡 */
+    left: 0;
+    width: 250px;
+    height: calc(100vh - 70px); /* 调整高度 */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    z-index: 1040; /* 在导航栏下方但在其他内容上方 */
+    transition: all 0.3s ease;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar.collapsed {
+    width: 60px !important;
+}
+
+/* 确保伸缩动画效果 */
+.sidebar {
+    overflow: hidden;
+}
+
+.sidebar.collapsed .sidebar-header h6 {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar:not(.collapsed) .sidebar-header h6 {
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-header {
+    padding: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    height: 70px; /* 固定高度，防止收缩时高度变化 */
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+.sidebar-content {
+    padding: 20px 0;
+    height: calc(100vh - 140px); /* 调整高度计算，减去固定的标题区高度 */
+    overflow-y: auto;
+}
+
+.sidebar .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+    position: relative;
+    min-height: 48px; /* 固定最小高度 */
+    box-sizing: border-box;
+}
+
+.sidebar .nav-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-left-color: rgba(255, 255, 255, 0.3);
+}
+
+.sidebar .nav-link.active {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border-left-color: white;
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+.sidebar .nav-link i {
+    width: 20px;
+    margin-right: 10px;
+    text-align: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+/* 展开状态下文字的正常样式 */
+.sidebar:not(.collapsed) .nav-text {
+    opacity: 1;
+    width: auto;
+    transition: opacity 0.3s ease, width 0.3s ease;
+}
+
+.sidebar.collapsed .nav-text {
+    opacity: 0; /* 使用透明度而非display:none，保持布局空间 */
+    width: 0; /* 宽度为0，实现横向消失效果 */
+    overflow: hidden;
+    transition: opacity 0.3s ease, width 0.3s ease;
+}
+
+.sidebar.collapsed .nav-link {
+    justify-content: center;
+    padding: 12px;
+    min-height: 48px; /* 保持固定高度 */
+}
+
+.sidebar-toggle {
+    transition: none; /* 禁用动画，防止冲突 */
+}
+
+/* 禁用按钮旋转，改用图标切换 */
+.sidebar.collapsed .sidebar-toggle {
+    /* transform: rotate(180deg); 注释掉旋转 */
+}
+
+/* 主内容区域样式 */
+.main-content {
+    margin-left: 250px;
+    padding: 20px;
+    min-height: 100vh;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.main-content.expanded {
+    margin-left: 60px;
+}
+
+/* 顶部工具栏样式 */
+.toolbar {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 20px;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        z-index: 1050;
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+    }
+
+    .main-content {
+        margin-left: 0;
+    }
+
+    .main-content.expanded {
+        margin-left: 0;
+    }
+
+    .toolbar {
+        position: relative;
+        z-index: 999;
+    }
+}
+
+/* 侧边栏遮罩层 */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+    display: none;
+}
+
+.sidebar-overlay.show {
+    display: block;
+}
+
+/* 维度分析展示区样式 */
+.analysis-section {
+    margin-top: 20px;
+}
+
+.dimension-content {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* 动态统计卡片增强样式 */
 #dynamicStats .card {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -749,3 +1011,20 @@ body.modal-open {
     left: 0;
     top: 0;
 }
+
+/* 顶部导航栏适配 */
+.navbar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1050; /* 确保在侧边栏之上 */
+    width: 100%;
+}
+
+/* 页面补丁 */
+body {
+    padding-top: 70px; /* 为顶部导航栏预留空间 */
+}
+
+/* 侧边栏定义已合并到上方 */

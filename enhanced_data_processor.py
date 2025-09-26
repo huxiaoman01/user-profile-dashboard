@@ -55,9 +55,13 @@ class EnhancedUserProfileProcessor:
             messages_df1 = pd.read_csv(f"{base_path}/messages_backup_data_enhanced.csv", encoding='utf-8')
             messages_df2 = pd.read_csv(f"{base_path}/messages_maibot_main_enhanced.csv", encoding='utf-8')
 
-            # 合并消息数据，过滤AI消息
+            # 合并消息数据，只过滤武小纺机器人
             self.messages_df = pd.concat([messages_df1, messages_df2], ignore_index=True)
-            self.messages_df = self.messages_df[self.messages_df['is_ai_message'] == 0]  # 只保留用户消息
+            # 只过滤武小纺机器人(user_id: 3655943918)，其他用户都是真实用户
+            self.messages_df = self.messages_df[
+                (self.messages_df['user_id'] != 3655943918) &
+                (self.messages_df['user_nickname'] != '武小纺')
+            ]
 
             print(f"加载完成：用户数据 {len(self.users_df)} 条，消息数据 {len(self.messages_df)} 条")
             return True

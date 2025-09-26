@@ -46,9 +46,13 @@ class FastUserProfileProcessor:
             msg1 = pd.read_csv(f"{base_path}/messages_backup_data_enhanced.csv", encoding='utf-8', usecols=message_cols)
             msg2 = pd.read_csv(f"{base_path}/messages_maibot_main_enhanced.csv", encoding='utf-8', usecols=message_cols)
 
-            # 合并并过滤
+            # 合并并只过滤武小纺机器人
             self.messages_df = pd.concat([msg1, msg2], ignore_index=True)
-            self.messages_df = self.messages_df[self.messages_df['is_ai_message'] == 0]
+            # 只过滤武小纺机器人(user_id: 3655943918)，其他用户都是真实用户
+            self.messages_df = self.messages_df[
+                (self.messages_df['user_id'] != 3655943918) &
+                (self.messages_df.get('user_nickname', '') != '武小纺')
+            ]
 
             # 预处理消息内容
             self.messages_df['message_content'] = self.messages_df['message_content'].fillna('').astype(str)
