@@ -879,6 +879,35 @@ function createContentTypeBarChart() {
         window.contentTypeBarChart.destroy();
     }
 
+    // 计算详细统计信息
+    const detailedStats = sortedEntries.map(([type, count]) => {
+        const typeUsers = analyticsData.users.filter(user =>
+            (user.dimensions?.content_type?.type || '未知') === type);
+
+        const totalMessages = typeUsers.reduce((sum, user) => sum + user.message_count, 0);
+        const avgMessages = Math.round(totalMessages / count);
+
+        return {
+            type,
+            count,
+            totalMessages,
+            avgMessages,
+            percentage: Math.round((count / analyticsData.users.length) * 100)
+        };
+    });
+
+    // 生成动态颜色
+    const colors = [
+        'rgba(255, 99, 132, 0.8)',
+        'rgba(54, 162, 235, 0.8)',
+        'rgba(255, 205, 86, 0.8)',
+        'rgba(75, 192, 192, 0.8)',
+        'rgba(153, 102, 255, 0.8)',
+        'rgba(255, 159, 64, 0.8)',
+        'rgba(199, 199, 199, 0.8)',
+        'rgba(83, 102, 255, 0.8)'
+    ];
+
     window.contentTypeBarChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -886,39 +915,64 @@ function createContentTypeBarChart() {
             datasets: [{
                 label: '用户数量',
                 data: data,
-                backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1
+                backgroundColor: colors.slice(0, data.length),
+                borderColor: colors.slice(0, data.length).map(color => color.replace('0.8', '1')),
+                borderWidth: 2,
+                borderRadius: 4,
+                borderSkipped: false
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
             plugins: {
                 legend: {
                     display: false
                 },
                 tooltip: {
                     callbacks: {
+                        title: function(context) {
+                            return `${context[0].label} 类型用户`;
+                        },
                         label: function(context) {
-                            return `${context.parsed.y}人`;
+                            const stat = detailedStats[context.dataIndex];
+                            return [
+                                `用户数量: ${stat.count}人 (${stat.percentage}%)`,
+                                `总消息数: ${stat.totalMessages.toLocaleString()}条`,
+                                `平均消息数: ${stat.avgMessages}条/人`
+                            ];
                         }
                     }
                 }
             },
             scales: {
-                y: {
+                x: {
                     beginAtZero: true,
                     ticks: {
-                        stepSize: 1
+                        stepSize: 1,
+                        callback: function(value) {
+                            return value + '人';
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
                     }
                 },
-                x: {
+                y: {
                     ticks: {
-                        maxRotation: 45,
-                        minRotation: 0
+                        font: {
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        display: false
                     }
                 }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeInOutQuart'
             }
         }
     });
@@ -961,8 +1015,8 @@ function initializeContentTypeTable() {
                 { targets: -1, orderable: false, searchable: false }, // 最后一列（详情按钮）不可排序
                 { targets: [2, 3], type: 'num' }
             ],
-            searching: true, // 启用搜索框
-            dom: 'frtip' // 标准布局：搜索框、表格、信息和分页
+            searching: false, // 禁用搜索框，避免重复
+            dom: 'rtip' // 简化布局：只要表格、信息和分页，去掉搜索框
         });
     }
 

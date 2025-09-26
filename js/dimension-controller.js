@@ -1252,27 +1252,50 @@ class DimensionController {
 
     // 彻底销毁所有表格
     destroyAllTables() {
-        // 销毁桌面端表格
-        if ($.fn.DataTable.isDataTable('#usersTable')) {
-            $('#usersTable').DataTable().destroy();
-            console.log('已销毁桌面端表格');
+        try {
+            // 销毁桌面端表格
+            if ($.fn.DataTable.isDataTable('#usersTable')) {
+                $('#usersTable').DataTable().destroy();
+                console.log('已销毁桌面端表格');
+            }
+
+            // 销毁移动端表格
+            if ($.fn.DataTable.isDataTable('#usersTableMobile')) {
+                $('#usersTableMobile').DataTable().destroy();
+                console.log('已销毁移动端表格');
+            }
+
+            // 强制清理所有DataTables相关DOM元素
+            $('.dataTables_wrapper').remove();
+            $('.dataTables_filter').remove();
+            $('.dataTables_paginate').remove();
+            $('.dataTables_info').remove();
+            $('.dataTables_length').remove();
+            $('.dataTables_processing').remove();
+
+            // 确保表格HTML结构正确
+            const usersTable = document.getElementById('usersTable');
+            const usersTableMobile = document.getElementById('usersTableMobile');
+
+            if (usersTable) {
+                // 清空tbody内容，但保留基本结构
+                const tbody = usersTable.querySelector('tbody');
+                if (tbody) {
+                    tbody.innerHTML = '';
+                }
+            }
+
+            if (usersTableMobile) {
+                const tbody = usersTableMobile.querySelector('tbody');
+                if (tbody) {
+                    tbody.innerHTML = '';
+                }
+            }
+
+            console.log('已清理所有DataTables DOM元素和表格内容');
+        } catch (error) {
+            console.error('销毁表格时出错:', error);
         }
-
-        // 销毁移动端表格
-        if ($.fn.DataTable.isDataTable('#usersTableMobile')) {
-            $('#usersTableMobile').DataTable().destroy();
-            console.log('已销毁移动端表格');
-        }
-
-        // 强制清理所有DataTables相关DOM元素
-        $('.dataTables_wrapper').remove();
-        $('.dataTables_filter').remove();
-        $('.dataTables_paginate').remove();
-        $('.dataTables_info').remove();
-        $('.dataTables_length').remove();
-        $('.dataTables_processing').remove();
-
-        console.log('已清理所有DataTables DOM元素');
     }
 
     // 根据当前维度处理用户数据
@@ -1290,6 +1313,158 @@ class DimensionController {
 
         // 按sortValue排序：对于加群时间维度，这会确保老成员在前，新成员在后
         return processedUsers.sort((a, b) => b.sortValue - a.sortValue);
+    }
+
+    // 验证表格数据一致性
+    validateTableData(tableData) {
+        const headerConfigs = {
+            'message_volume': 8,    // 8列
+            'time_pattern': 7,      // 7列
+            'content_type': 7,      // 7列
+            'member_join_time': 8,  // 8列
+            'social_behavior': 8    // 8列
+        };
+
+        const expectedColumns = headerConfigs[this.currentDimension] || 8;
+        let hasErrors = false;
+
+        console.log(`开始验证 ${this.currentDimension} 维度数据，期望列数: ${expectedColumns}`);
+
+        // 检查所有行的列数
+        for (let i = 0; i < tableData.length; i++) {
+            const row = tableData[i];
+            if (row.length !== expectedColumns) {
+                hasErrors = true;
+                console.error(`❌ 数据验证失败 - 维度: ${this.currentDimension}, 行: ${i}, 期望列数: ${expectedColumns}, 实际列数: ${row.length}`);
+
+                if (i < 3) { // 只打印前3行的详细信息
+                    console.error('问题行数据:', row);
+                }
+
+                // 自动修复：截断或补充列
+                if (row.length > expectedColumns) {
+                    tableData[i] = row.slice(0, expectedColumns);
+                    console.warn(`🔧 自动截断第 ${i} 行到 ${expectedColumns} 列`);
+                } else if (row.length < expectedColumns) {
+                    while (tableData[i].length < expectedColumns) {
+                        tableData[i].push(`缺失数据${tableData[i].length}`); // 补充带标识的列
+                    }
+                    console.warn(`🔧 自动补充第 ${i} 行到 ${expectedColumns} 列`);
+                }
+            }
+        }
+
+        if (hasErrors) {
+            console.error(`⚠️ 发现数据不一致问题，已自动修复。请检查代码逻辑。`);
+            // 打印第一行修复后的数据作为示例
+            if (tableData.length > 0) {
+                console.log('修复后第一行数据:', tableData[0]);
+            }
+        } else {
+            console.log(`✅ 数据验证通过 - 维度: ${this.currentDimension}, 数据行数: ${tableData.length}, 列数: ${expectedColumns}`);
+        }
+    }
+
+    // 获取列配置
+    getColumnConfigs() {
+        const baseConfig = [
+            { targets: -1, orderable: false, searchable: false }, // 最后一列（详情按钮）不可排序
+            { targets: [2], type: 'num' } // 群组数量列
+        ];
+
+        switch (this.currentDimension) {
+            case 'message_volume':
+                // 8列：用户昵称、主要群组、参与群数、消息数、发言分类、活跃排名、标签、操作
+                return {
+                    desktop: [
+                        ...baseConfig,
+                        { targets: [3], type: 'num' }, // 消息数
+                        { targets: [5], orderable: true } // 活跃排名可排序
+                    ],
+                    mobile: [
+                        { targets: -1, orderable: false, searchable: false },
+                        { targets: [1], type: 'num' } // 移动端消息数列
+                    ]
+                };
+
+            case 'time_pattern':
+                // 7列：用户昵称、主要群组、参与群数、消息数、时间类型、时间分布、操作
+                return {
+                    desktop: [
+                        ...baseConfig,
+                        { targets: [3], type: 'num' } // 消息数
+                    ],
+                    mobile: [
+                        { targets: -1, orderable: false, searchable: false },
+                        { targets: [1], type: 'num' }
+                    ]
+                };
+
+            case 'content_type':
+                // 7列：用户昵称、主要群组、参与群数、消息数、发言类型、标签、操作
+                return {
+                    desktop: [
+                        ...baseConfig,
+                        { targets: [3], type: 'num' } // 消息数
+                    ],
+                    mobile: [
+                        { targets: -1, orderable: false, searchable: false },
+                        { targets: [1], type: 'num' }
+                    ]
+                };
+
+            case 'member_join_time':
+                // 8列：用户昵称、主要群组、参与群数、在群天数、成员类型、加群日期、标签、操作
+                return {
+                    desktop: [
+                        ...baseConfig,
+                        {
+                            targets: [3],
+                            type: 'num-fmt', // 处理"X天"格式
+                            render: function(data, type, row) {
+                                if (type === 'sort' || type === 'type') {
+                                    return parseInt(data) || 0; // 提取数字用于排序
+                                }
+                                return data;
+                            }
+                        },
+                        { targets: [5], orderable: true } // 日期列可排序
+                    ],
+                    mobile: [
+                        { targets: -1, orderable: false, searchable: false },
+                        {
+                            targets: [1],
+                            type: 'num-fmt',
+                            render: function(data, type, row) {
+                                if (type === 'sort' || type === 'type') {
+                                    return parseInt(data) || 0;
+                                }
+                                return data;
+                            }
+                        }
+                    ]
+                };
+
+            case 'social_behavior':
+                // 8列：用户昵称、主要群组、参与群数、消息数、社交类型、社交评分、标签、操作
+                return {
+                    desktop: [
+                        ...baseConfig,
+                        { targets: [3], type: 'num' }, // 消息数
+                        { targets: [5], orderable: true } // 社交评分可排序
+                    ],
+                    mobile: [
+                        { targets: -1, orderable: false, searchable: false },
+                        { targets: [1], type: 'num' }
+                    ]
+                };
+
+            default:
+                return {
+                    desktop: baseConfig,
+                    mobile: [{ targets: -1, orderable: false, searchable: false }]
+                };
+        }
     }
 
     // 获取当前维度的显示数据
@@ -1422,53 +1597,90 @@ class DimensionController {
         return processedUsers.map(user => {
             const dimData = user.currentDimensionData;
 
-            if (this.currentDimension === 'member_join_time') {
-                return [
-                    user.nickname,
-                    user.main_group || '未知群组',
-                    user.all_groups ? user.all_groups.length : 1,
-                    `${dimData.count}天`,
-                    `<span class="badge bg-${dimData.color}">${dimData.level}</span>`,
-                    `<span class="badge bg-secondary">${dimData.joinDate}</span>`,
-                    this.formatUserTags(user.profile_summary?.tags || []),
-                    `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
-                ];
-            } else if (this.currentDimension === 'content_type') {
-                return [
-                    user.nickname,
-                    user.main_group || '未知群组',
-                    user.all_groups ? user.all_groups.length : 1,
-                    dimData.count,
-                    `<span class="badge bg-${dimData.color}">${dimData.level}</span>`,
-                    this.formatUserTags(user.profile_summary?.tags || []),
-                    `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
-                ];
-            } else if (this.currentDimension === 'time_pattern') {
-                return [
-                    user.nickname,
-                    user.main_group || '未知群组',
-                    user.all_groups ? user.all_groups.length : 1,
-                    dimData.count,
-                    `<span class="badge bg-${dimData.color}">${dimData.level}</span>`,
-                    `<div class="time-stats">
-                        <small>早: ${dimData.morningRatio}</small><br>
-                        <small>晚: ${dimData.eveningRatio}</small><br>
-                        <small>夜: ${dimData.nightRatio}</small>
-                    </div>`,
-                    `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
-                ];
-            } else {
-                const rankDisplay = dimData.rank === 999 ? '未排名' : `#${dimData.rank}`;
-                return [
-                    user.nickname,
-                    user.main_group || '未知群组',
-                    user.all_groups ? user.all_groups.length : 1,
-                    dimData.count,
-                    `<span class="badge bg-${dimData.color}">${dimData.level}</span>`,
-                    `<span class="badge bg-info">排名 ${rankDisplay}</span>`,
-                    this.formatUserTags(user.profile_summary?.tags || []),
-                    `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
-                ];
+            switch (this.currentDimension) {
+                case 'message_volume':
+                    // 8列：用户昵称、主要群组、参与群数、消息数、发言分类、活跃排名、标签、操作
+                    const rankDisplay = dimData.rank === 999 ? '未排名' : `#${dimData.rank}`;
+                    return [
+                        user.nickname,
+                        user.main_group || '未知群组',
+                        user.all_groups ? user.all_groups.length : 1,
+                        dimData.count,
+                        `<span class="badge bg-${dimData.color}">${dimData.level}</span>`,
+                        `<span class="badge bg-info">排名 ${rankDisplay}</span>`,
+                        this.formatUserTags(user.profile_summary?.tags || []),
+                        `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
+                    ];
+
+                case 'time_pattern':
+                    // 7列：用户昵称、主要群组、参与群数、消息数、时间类型、时间分布、操作
+                    return [
+                        user.nickname,
+                        user.main_group || '未知群组',
+                        user.all_groups ? user.all_groups.length : 1,
+                        dimData.count,
+                        `<span class="badge bg-${dimData.color}">${dimData.level}</span>`,
+                        `<div class="time-stats">
+                            <small>早: ${dimData.morningRatio}</small><br>
+                            <small>晚: ${dimData.eveningRatio}</small><br>
+                            <small>夜: ${dimData.nightRatio}</small>
+                        </div>`,
+                        `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
+                    ];
+
+                case 'content_type':
+                    // 7列：用户昵称、主要群组、参与群数、消息数、发言类型、标签、操作
+                    return [
+                        user.nickname,
+                        user.main_group || '未知群组',
+                        user.all_groups ? user.all_groups.length : 1,
+                        dimData.count,
+                        `<span class="badge bg-${dimData.color}">${dimData.level}</span>`,
+                        this.formatUserTags(user.profile_summary?.tags || []),
+                        `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
+                    ];
+
+                case 'member_join_time':
+                    // 8列：用户昵称、主要群组、参与群数、在群天数、成员类型、加群日期、标签、操作
+                    return [
+                        user.nickname,
+                        user.main_group || '未知群组',
+                        user.all_groups ? user.all_groups.length : 1,
+                        `${dimData.count}天`,
+                        `<span class="badge bg-${dimData.color}">${dimData.level}</span>`,
+                        `<span class="badge bg-secondary">${dimData.joinDate}</span>`,
+                        this.formatUserTags(user.profile_summary?.tags || []),
+                        `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
+                    ];
+
+                case 'social_behavior':
+                    // 8列：用户昵称、主要群组、参与群数、消息数、社交类型、社交评分、标签、操作
+                    const socialScore = dimData.socialScore || '未知';
+                    return [
+                        user.nickname,
+                        user.main_group || '未知群组',
+                        user.all_groups ? user.all_groups.length : 1,
+                        dimData.count,
+                        `<span class="badge bg-${dimData.color}">${dimData.level}</span>`,
+                        `<span class="badge bg-warning">评分 ${socialScore}</span>`,
+                        this.formatUserTags(user.profile_summary?.tags || []),
+                        `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
+                    ];
+
+                default:
+                    // 默认使用message_volume格式（8列）
+                    console.warn(`未知维度: ${this.currentDimension}, 使用默认格式`);
+                    const defaultRankDisplay = dimData.rank === 999 ? '未排名' : `#${dimData.rank}`;
+                    return [
+                        user.nickname,
+                        user.main_group || '未知群组',
+                        user.all_groups ? user.all_groups.length : 1,
+                        dimData.count,
+                        `<span class="badge bg-${dimData.color}">${dimData.level}</span>`,
+                        `<span class="badge bg-info">排名 ${defaultRankDisplay}</span>`,
+                        this.formatUserTags(user.profile_summary?.tags || []),
+                        `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
+                    ];
             }
         });
     }
@@ -1501,8 +1713,34 @@ class DimensionController {
         // 移动端表格数据
         const mobileTableData = this.generateMobileTableData(processedUsers);
 
+        // 验证数据一致性
+        console.log(`生成 ${this.currentDimension} 维度表格数据，共 ${desktopTableData.length} 行`);
+        this.validateTableData(desktopTableData);
+
+        // 获取当前维度的列数配置
+        const columnConfigs = this.getColumnConfigs();
+
         // 初始化桌面端表格
-        if ($('#usersTable').length > 0) {
+        const usersTableElement = document.getElementById('usersTable');
+        if (usersTableElement && $('#usersTable').length > 0) {
+            // 验证表格结构
+            const thead = usersTableElement.querySelector('thead');
+            const tbody = usersTableElement.querySelector('tbody');
+
+            if (!thead || !tbody) {
+                console.error('❌ 表格结构不完整，缺少thead或tbody');
+                return;
+            }
+
+            const headerCells = thead.querySelectorAll('th');
+            console.log(`表格头部列数: ${headerCells.length}, 数据列数: ${desktopTableData.length > 0 ? desktopTableData[0].length : 0}`);
+
+            // 如果表头列数与数据列数不匹配，动态更新表头
+            if (desktopTableData.length > 0 && headerCells.length !== desktopTableData[0].length) {
+                console.warn(`表头列数(${headerCells.length})与数据列数(${desktopTableData[0].length})不匹配，正在更新表头...`);
+                this.updateTableHeaders(this.currentDimension);
+            }
+
             const tableConfig = {
                 data: desktopTableData,
                 language: {
@@ -1517,31 +1755,12 @@ class DimensionController {
                 info: true,             // 显示信息
                 autoWidth: false,       // 禁用自动宽度
                 order: this.currentDimension === 'member_join_time' ? [] : [[3, 'desc']], // 加群时间维度使用预排序
-                columnDefs: [
-                    { targets: -1, orderable: false, searchable: false }, // 最后一列（详情按钮）不可排序
-                    { targets: [2], type: 'num' } // 群组数量列
-                ],
+                columnDefs: columnConfigs.desktop,
                 dom: '<"top"f>rt<"bottom"ip><"clear">' // 搜索框在顶部，信息和分页在底部
             };
 
-            // 根据不同维度调整列配置
+            // 添加行样式（仅针对加群时间维度）
             if (this.currentDimension === 'member_join_time') {
-                // 加群时间维度：第3列是天数，第5列是日期
-                tableConfig.columnDefs.push(
-                    {
-                        targets: [3],
-                        type: 'num-fmt', // 处理"X天"格式
-                        render: function(data, type, row) {
-                            if (type === 'sort' || type === 'type') {
-                                return parseInt(data) || 0; // 提取数字用于排序
-                            }
-                            return data;
-                        }
-                    },
-                    { targets: [5], orderable: true } // 日期列可排序
-                );
-
-                // 添加行样式区分新老成员
                 tableConfig.createdRow = function(row, data, dataIndex) {
                     if (data[4] && data[4].includes('老成员')) {
                         $(row).addClass('table-info'); // 老成员行淡蓝色背景
@@ -1549,12 +1768,36 @@ class DimensionController {
                         $(row).addClass('table-warning'); // 新成员行淡黄色背景
                     }
                 };
-            } else {
-                // 其他维度：第3列是数字
-                tableConfig.columnDefs.push({ targets: [3], type: 'num' });
             }
 
-            $('#usersTable').DataTable(tableConfig);
+            try {
+                console.log('初始化桌面端DataTable，配置:', {
+                    dimension: this.currentDimension,
+                    dataLength: desktopTableData.length,
+                    expectedColumns: columnConfigs.desktop.find(def => def.targets === -1) ? 'found' : 'not found',
+                    firstRowLength: desktopTableData.length > 0 ? desktopTableData[0].length : 0
+                });
+
+                $('#usersTable').DataTable(tableConfig);
+                console.log('✅ 桌面端DataTable初始化成功');
+            } catch (error) {
+                console.error('❌ 桌面端DataTable初始化失败:', error);
+
+                // 尝试降级处理：使用最基本的配置
+                try {
+                    const basicConfig = {
+                        data: desktopTableData,
+                        pageLength: 10,
+                        searching: false,
+                        ordering: false,
+                        columnDefs: [{ targets: -1, orderable: false, searchable: false }]
+                    };
+                    $('#usersTable').DataTable(basicConfig);
+                    console.log('⚠️ 使用基本配置初始化成功');
+                } catch (fallbackError) {
+                    console.error('❌ 基本配置也失败:', fallbackError);
+                }
+            }
         }
 
         // 初始化移动端表格
@@ -1571,29 +1814,14 @@ class DimensionController {
                 ordering: true,         // 启用排序
                 autoWidth: false,       // 禁用自动宽度
                 order: this.currentDimension === 'member_join_time' ? [] : [[1, 'desc']], // 加群时间维度使用预排序
-                columnDefs: [
-                    { targets: -1, orderable: false, searchable: false } // 最后一列（详情按钮）不可排序
-                ],
+                columnDefs: columnConfigs.mobile,
                 lengthChange: false,    // 移动端隐藏改变每页条数
                 info: false,            // 移动端隐藏信息
                 dom: '<"top"f>rt<"clear">' // 移动端：搜索框在顶部，表格在中间
             };
 
-            // 根据不同维度调整移动端列配置
+            // 添加移动端行样式（仅针对加群时间维度）
             if (this.currentDimension === 'member_join_time') {
-                // 加群时间维度：第1列是天数格式
-                mobileTableConfig.columnDefs.push({
-                    targets: [1],
-                    type: 'num-fmt',
-                    render: function(data, type, row) {
-                        if (type === 'sort' || type === 'type') {
-                            return parseInt(data) || 0;
-                        }
-                        return data;
-                    }
-                });
-
-                // 添加移动端行样式
                 mobileTableConfig.createdRow = function(row, data, dataIndex) {
                     if (data[2] && data[2].includes('老成员')) {
                         $(row).addClass('table-info'); // 老成员行淡蓝色背景
@@ -1601,12 +1829,30 @@ class DimensionController {
                         $(row).addClass('table-warning'); // 新成员行淡黄色背景
                     }
                 };
-            } else {
-                // 其他维度：第1列是纯数字
-                mobileTableConfig.columnDefs.push({ targets: [1], type: 'num' });
             }
 
-            $('#usersTableMobile').DataTable(mobileTableConfig);
+            try {
+                console.log('初始化移动端DataTable');
+                $('#usersTableMobile').DataTable(mobileTableConfig);
+                console.log('✅ 移动端DataTable初始化成功');
+            } catch (error) {
+                console.error('❌ 移动端DataTable初始化失败:', error);
+
+                // 尝试降级处理
+                try {
+                    const basicMobileConfig = {
+                        data: mobileTableData,
+                        pageLength: 8,
+                        searching: false,
+                        ordering: false,
+                        columnDefs: [{ targets: -1, orderable: false, searchable: false }]
+                    };
+                    $('#usersTableMobile').DataTable(basicMobileConfig);
+                    console.log('⚠️ 移动端使用基本配置初始化成功');
+                } catch (fallbackError) {
+                    console.error('❌ 移动端基本配置也失败:', fallbackError);
+                }
+            }
         }
     }
 

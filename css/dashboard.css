@@ -307,6 +307,38 @@ body {
     }
 }
 
+/* 桌面端表格内容截断优化 */
+#usersTable td,
+#contentTypeTable td,
+#categoryUsersTable td {
+    word-wrap: break-word;
+    word-break: break-all;
+}
+
+/* 表格容器滚动条样式 */
+.table-responsive {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+}
+
+.table-responsive::-webkit-scrollbar {
+    height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
     .container-fluid {
@@ -622,12 +654,7 @@ body {
     padding: 0.375rem 0.75rem;
 }
 
-/* 隐藏多余的搜索框 - 只保留第一个 */
-#contentTypeTable_wrapper .dataTables_filter {
-    display: none !important;
-}
-
-/* 如果有其他重复的搜索框，也可以用类似方法隐藏 */
+/* DataTables自定义搜索框布局优化 */
 .dataTables_wrapper:not(:first-of-type) .dataTables_filter {
     display: none !important;
 }
@@ -639,10 +666,64 @@ body {
     color: white !important;
 }
 
-/* 操作列固定宽度控制 */
-#usersTable th:last-child,
-#usersTable td:last-child {
-    width: 90px;
+/* 主用户表格列宽度控制 */
+#usersTable {
+    table-layout: fixed;
+    width: 100%;
+}
+
+#usersTable th:nth-child(1), /* 用户昵称 */
+#usersTable td:nth-child(1) {
+    width: 15%;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#usersTable th:nth-child(2), /* 主要群组 */
+#usersTable td:nth-child(2) {
+    width: 20%;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#usersTable th:nth-child(3), /* 参与群数 */
+#usersTable td:nth-child(3) {
+    width: 8%;
+    text-align: center;
+}
+
+#usersTable th:nth-child(4), /* 消息数 */
+#usersTable td:nth-child(4) {
+    width: 10%;
+    text-align: center;
+}
+
+#usersTable th:nth-child(5), /* 发言分类 */
+#usersTable td:nth-child(5) {
+    width: 10%;
+    text-align: center;
+}
+
+#usersTable th:nth-child(6), /* 活跃排名 */
+#usersTable td:nth-child(6) {
+    width: 10%;
+    text-align: center;
+}
+
+#usersTable th:nth-child(7), /* 标签 */
+#usersTable td:nth-child(7) {
+    width: 20%;
+    max-width: 200px;
+    overflow: hidden;
+}
+
+#usersTable th:nth-child(8), /* 操作 */
+#usersTable td:nth-child(8) {
+    width: 10%;
     min-width: 90px;
     text-align: center;
 }
@@ -653,6 +734,104 @@ body {
 
 #usersTable td:last-child .btn {
     white-space: nowrap;
+}
+
+/* 发言类型表格列宽度控制 */
+#contentTypeTable {
+    table-layout: fixed;
+    width: 100%;
+}
+
+#contentTypeTable th:nth-child(1), /* 用户昵称 */
+#contentTypeTable td:nth-child(1) {
+    width: 15%;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#contentTypeTable th:nth-child(2), /* 发言类型 */
+#contentTypeTable td:nth-child(2) {
+    width: 12%;
+    text-align: center;
+}
+
+#contentTypeTable th:nth-child(3), /* 消息数 */
+#contentTypeTable td:nth-child(3) {
+    width: 10%;
+    text-align: center;
+}
+
+#contentTypeTable th:nth-child(4), /* 主要群组 */
+#contentTypeTable td:nth-child(4) {
+    width: 25%;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#contentTypeTable th:nth-child(5), /* 特征描述 */
+#contentTypeTable td:nth-child(5) {
+    width: 28%;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#contentTypeTable th:nth-child(6), /* 操作 */
+#contentTypeTable td:nth-child(6) {
+    width: 10%;
+    min-width: 90px;
+    text-align: center;
+}
+
+/* 分类用户表格列宽度控制 */
+#categoryUsersTable {
+    table-layout: fixed;
+    width: 100%;
+}
+
+#categoryUsersTable th:nth-child(1), /* 用户昵称 */
+#categoryUsersTable td:nth-child(1) {
+    width: 20%;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#categoryUsersTable th:nth-child(2), /* 消息数 */
+#categoryUsersTable td:nth-child(2) {
+    width: 15%;
+    text-align: center;
+}
+
+#categoryUsersTable th:nth-child(3), /* 主要群组 */
+#categoryUsersTable td:nth-child(3) {
+    width: 25%;
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#categoryUsersTable th:nth-child(4), /* 特征描述 */
+#categoryUsersTable td:nth-child(4) {
+    width: 30%;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#categoryUsersTable th:nth-child(5), /* 操作 */
+#categoryUsersTable td:nth-child(5) {
+    width: 10%;
+    min-width: 90px;
+    text-align: center;
 }
 
 /* 热力图样式 */
