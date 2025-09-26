@@ -394,74 +394,8 @@ function updateStats() {
     $('#lastUpdate').text(`数据更新时间: ${stats.update_time}`);
 }
 
-// 初始化用户表格
-function initializeUsersTable() {
-    const users = analyticsData.users;
-    
-    // 桌面端表格数据
-    const tableData = users.map(user => [
-        user.nickname,
-        user.main_group || '未知群组',
-        user.all_groups ? user.all_groups.length : 1,
-        user.message_count || 0,
-        `<span class="badge bg-${getCategoryColor(user.dimensions?.message_volume?.level)}">${user.dimensions?.message_volume?.level || '未知'}</span>`,
-        `<span class="badge bg-info">活跃度 #${user.dimensions?.message_volume?.rank || '?'}</span>`,
-        formatUserTags(user.profile_summary?.tags || []),
-        `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
-    ]);
-    
-    // 移动端表格数据（简化版）
-    const mobileTableData = users.map(user => [
-        `<div class="mobile-user-info">
-            <div class="mobile-user-name">${user.nickname}</div>
-            <div class="mobile-user-group">${user.main_group || '未知群组'}</div>
-            <div class="mobile-user-tags">${formatUserTagsMobile(user.profile_summary?.tags || [])}</div>
-        </div>`,
-        user.message_count || 0,
-        `<span class="badge bg-${getCategoryColor(user.dimensions?.message_volume?.level)}" style="font-size: 0.65rem;">${getShortUserCategory(user.dimensions?.message_volume?.level)}</span>`,
-        `<button class="btn btn-primary btn-mobile" onclick="showUserDetailMobile('${user.user_id}')">详情</button>`
-    ]);
-    
-    // 初始化桌面端表格
-    if ($('#usersTable').length > 0) {
-        $('#usersTable').DataTable({
-            data: tableData,
-            language: {
-                url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/zh.json'
-            },
-            pageLength: 10,
-            responsive: true,
-            order: [[3, 'desc']], // 按消息数排序
-            columnDefs: [
-                { targets: [7], orderable: false, searchable: false },
-                { targets: [2, 3], type: 'num' }
-            ],
-            searching: true, // 启用搜索框
-            dom: 'frtip' // 保留搜索框，移除长度选择器，保留表格、信息和分页
-        });
-    }
-    
-    // 初始化移动端表格
-    if ($('#usersTableMobile').length > 0) {
-        $('#usersTableMobile').DataTable({
-            data: mobileTableData,
-            language: {
-                url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/zh.json'
-            },
-            pageLength: 8,
-            responsive: false,
-            order: [[1, 'desc']], // 按消息数排序
-            columnDefs: [
-                { targets: [3], orderable: false, searchable: false },
-                { targets: [1], type: 'num' }
-            ],
-            lengthChange: false,
-            info: false,
-            searching: true,
-            paging: false // 移动端禁用分页
-        });
-    }
-}
+// DataTables初始化已移至dimension-controller.js统一管理
+// 避免重复初始化导致UI元素重复的问题
 
 // 获取用户类型颜色
 function getCategoryColor(category) {
@@ -480,16 +414,6 @@ function getCategoryColor(category) {
     return colors[category] || 'secondary';
 }
 
-// 获取画像状态颜色
-function getStatusColor(status) {
-    const colors = {
-        '完整': 'success',
-        '部分': 'warning',
-        '数据不足': 'danger',
-        '待分析': 'info'
-    };
-    return colors[status] || 'secondary';
-}
 
 // 格式化用户标签
 function formatUserTags(tags) {
@@ -649,7 +573,6 @@ function generateUserDetailHtml(user, userId) {
             <div class="user-info-label">发言类型</div>
             <div class="user-info-content">
                 <span class="badge bg-info">${contentType.type || '未知'}</span>
-                <small class="text-muted d-block mt-1">置信度: ${((contentType.confidence || 0) * 100).toFixed(1)}%</small>
             </div>
         </div>
         <div class="user-info-item">
@@ -996,12 +919,10 @@ function initializeContentTypeTable() {
     // 桌面端表格数据
     const tableData = users.map(user => {
         const contentType = user.dimensions?.content_type || {};
-        const confidence = contentType.confidence ? (contentType.confidence * 100).toFixed(1) + '%' : '未知';
 
         return [
             user.nickname,
             `<span class="badge bg-info">${contentType.type || '未知'}</span>`,
-            confidence,
             user.message_count || 0,
             user.main_group || '未知群组',
             getContentTypeDescription(contentType.type),
@@ -1025,11 +946,11 @@ function initializeContentTypeTable() {
             responsive: true,
             order: [[3, 'desc']], // 按消息数排序
             columnDefs: [
-                { targets: [6], orderable: false, searchable: false },
+                { targets: -1, orderable: false, searchable: false }, // 最后一列（详情按钮）不可排序
                 { targets: [2, 3], type: 'num' }
             ],
-            searching: true, // 启用搜索框
-            dom: 'frtip' // 保留搜索框，移除长度选择器，保留表格、信息和分页
+            searching: false, // 禁用搜索框，避免与主用户表格重复
+            dom: 'rtip' // 只保留表格、信息和分页，无搜索框
         });
     }
 
@@ -1044,7 +965,6 @@ function generateMobileContentTypeList(users) {
 
     users.forEach(user => {
         const contentType = user.dimensions?.content_type || {};
-        const confidence = contentType.confidence ? (contentType.confidence * 100).toFixed(1) + '%' : '未知';
 
         const itemHtml = `
             <div class="card mb-2">
@@ -1054,7 +974,6 @@ function generateMobileContentTypeList(users) {
                             <div class="fw-bold">${user.nickname}</div>
                             <div class="small text-muted">${user.main_group || '未知群组'}</div>
                             <span class="badge bg-info">${contentType.type || '未知'}</span>
-                            <small class="text-muted ms-2">${confidence}</small>
                         </div>
                         <div class="col-3 text-center">
                             <div class="fw-bold text-primary">${user.message_count || 0}</div>
@@ -1169,7 +1088,6 @@ function exportContentTypeData() {
         exportData.用户详情.push({
             用户昵称: user.nickname,
             发言类型: type,
-            置信度: user.dimensions?.content_type?.confidence || 0,
             消息数量: user.message_count || 0,
             主要群组: user.main_group || '未知',
             类型描述: getContentTypeDescription(type)

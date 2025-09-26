@@ -160,15 +160,12 @@ class ContentTypeClassifier:
         # 选择得分最高的类型
         if max(scores.values()) > 0:
             best_type = max(scores, key=scores.get)
-            confidence = scores[best_type]
         else:
             # 如果没有匹配，随机分配一个类型
             best_type = random.choice(list(self.content_type_keywords.keys()))
-            confidence = 0.3
 
         return {
             'type': best_type,
-            'confidence': min(confidence * 0.8 + 0.2, 1.0),  # 确保置信度在0.2-1.0之间
             'scores': scores
         }
 
@@ -179,12 +176,12 @@ class ContentTypeClassifier:
         msg_count = user.get('message_count', 0)
 
         if any(tech in username for tech in ['dev', 'code', 'program']):
-            return {'type': '技术型', 'confidence': 0.6}
+            return {'type': '技术型'}
         elif msg_count < 10:
-            return {'type': '闲聊型', 'confidence': 0.4}
+            return {'type': '闲聊型'}
         else:
             # 随机分配
-            return {'type': random.choice(list(self.content_type_keywords.keys())), 'confidence': 0.3}
+            return {'type': random.choice(list(self.content_type_keywords.keys()))}
 
     def ensure_balanced_distribution(self, users):
         """确保各类型分布均衡"""
@@ -214,8 +211,8 @@ class ContentTypeClassifier:
                 users_of_this_type = [u for u in users if u['dimensions']['content_type']['type'] == content_type]
                 excess_count = current_count - target_count
 
-                # 按置信度排序，重新分类置信度较低的用户
-                users_of_this_type.sort(key=lambda x: x['dimensions']['content_type']['confidence'])
+                # 随机选择需要重新分类的用户
+                random.shuffle(users_of_this_type)
 
                 for i in range(min(excess_count, len(users_of_this_type))):
                     user = users_of_this_type[i]
@@ -227,7 +224,6 @@ class ContentTypeClassifier:
                     if needed_types:
                         new_type = random.choice(needed_types)
                         user['dimensions']['content_type']['type'] = new_type
-                        user['dimensions']['content_type']['confidence'] *= 0.8  # 降低置信度
                         current_distribution[content_type] -= 1
                         current_distribution[new_type] += 1
                         try:

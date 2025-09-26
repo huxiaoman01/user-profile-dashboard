@@ -141,7 +141,7 @@ class EnhancedUserProfileProcessor:
     def calculate_content_type_dimension(self, user_messages):
         """计算发言类型维度分析"""
         if len(user_messages) == 0:
-            return {'primary_type': '未知', 'distribution': {}, 'confidence': 0}
+            return {'primary_type': '未知', 'distribution': {}}
 
         # 统计各类型关键词出现次数
         type_scores = defaultdict(int)
@@ -159,8 +159,7 @@ class EnhancedUserProfileProcessor:
         if not type_scores:
             return {
                 'primary_type': '闲聊型',
-                'distribution': {'闲聊型': 1.0},
-                'confidence': 0.3
+                'distribution': {'闲聊型': 1.0}
             }
 
         # 计算分布比例
@@ -169,12 +168,10 @@ class EnhancedUserProfileProcessor:
 
         # 确定主要类型
         primary_type = max(distribution.keys(), key=lambda k: distribution[k])
-        confidence = distribution[primary_type]
 
         return {
             'primary_type': primary_type,
-            'distribution': {k: round(v, 3) for k, v in distribution.items()},
-            'confidence': round(confidence, 3)
+            'distribution': {k: round(v, 3) for k, v in distribution.items()}
         }
 
     def calculate_social_behavior_dimension(self, user_messages, all_messages):

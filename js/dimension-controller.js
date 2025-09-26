@@ -166,10 +166,10 @@ class DimensionController {
                 '用户昵称', '主要群组', '参与群数', '消息数', '发言分类', '活跃排名', '标签', '操作'
             ],
             'time_pattern': [
-                '用户昵称', '主要群组', '参与群数', '消息数', '时间类型', '作息排名', '时间分布', '操作'
+                '用户昵称', '主要群组', '参与群数', '消息数', '时间类型', '时间分布', '操作'
             ],
             'content_type': [
-                '用户昵称', '主要群组', '参与群数', '消息数', '发言类型', '置信度', '标签', '操作'
+                '用户昵称', '主要群组', '参与群数', '消息数', '发言类型', '标签', '操作'
             ],
             'member_join_time': [
                 '用户昵称', '主要群组', '参与群数', '在群天数', '成员类型', '加群日期', '标签', '操作'
@@ -478,8 +478,7 @@ class DimensionController {
             topUsers.push({
                 nickname: user.nickname,
                 count: user.message_count || 0,
-                type: contentType,
-                confidence: user.dimensions?.content_type?.confidence || 0
+                type: contentType
             });
         });
 
@@ -569,7 +568,6 @@ class DimensionController {
                 nickname: user.nickname,
                 count: user.message_count || 0,
                 type: type,
-                confidence: timeData.confidence || 0,
                 stats: stats
             };
 
@@ -1242,34 +1240,39 @@ class DimensionController {
 
         console.log(`${this.currentDimension} 维度处理用户数据量: ${processedUsers.length}`);
 
-        // 如果DataTable已存在，只更新数据而不重新初始化
-        if ($.fn.DataTable.isDataTable('#usersTable')) {
-            const table = $('#usersTable').DataTable();
-            table.clear();
+        // 彻底销毁现有表格，然后重新初始化
+        this.destroyAllTables();
 
-            // 生成新的表格数据
-            const desktopTableData = this.generateDesktopTableData(processedUsers);
-            table.rows.add(desktopTableData);
-            table.draw();
-
-            console.log('已更新现有桌面端表格数据');
-        } else {
-            // 如果表格不存在，重新初始化
+        // 延迟重新初始化，确保清理完成
+        setTimeout(() => {
             this.initializeDataTables(processedUsers);
-            console.log('重新初始化表格');
+            console.log('表格重新初始化完成');
+        }, 50);
+    }
+
+    // 彻底销毁所有表格
+    destroyAllTables() {
+        // 销毁桌面端表格
+        if ($.fn.DataTable.isDataTable('#usersTable')) {
+            $('#usersTable').DataTable().destroy();
+            console.log('已销毁桌面端表格');
         }
 
-        // 移动端表格同样处理
+        // 销毁移动端表格
         if ($.fn.DataTable.isDataTable('#usersTableMobile')) {
-            const mobileTable = $('#usersTableMobile').DataTable();
-            mobileTable.clear();
-
-            const mobileTableData = this.generateMobileTableData(processedUsers);
-            mobileTable.rows.add(mobileTableData);
-            mobileTable.draw();
-
-            console.log('已更新现有移动端表格数据');
+            $('#usersTableMobile').DataTable().destroy();
+            console.log('已销毁移动端表格');
         }
+
+        // 强制清理所有DataTables相关DOM元素
+        $('.dataTables_wrapper').remove();
+        $('.dataTables_filter').remove();
+        $('.dataTables_paginate').remove();
+        $('.dataTables_info').remove();
+        $('.dataTables_length').remove();
+        $('.dataTables_processing').remove();
+
+        console.log('已清理所有DataTables DOM元素');
     }
 
     // 根据当前维度处理用户数据
@@ -1318,8 +1321,7 @@ class DimensionController {
                     level: contentType.type || '未知',
                     count: user.message_count || 0,
                     rank: 0, // 发言类型没有排名概念
-                    color: this.getContentTypeLevelColor(contentType.type),
-                    confidence: ((contentType.confidence || 0) * 100).toFixed(1) + '%'
+                    color: this.getContentTypeLevelColor(contentType.type)
                 };
             case 'time_pattern':
                 const timePattern = dims.time_pattern || {};
@@ -1327,7 +1329,7 @@ class DimensionController {
                 return {
                     level: timePattern.type || '未知',
                     count: user.message_count || 0,
-                    rank: this.calculateTimePatternRank(user, timePattern),
+                    rank: 0,
                     color: this.getTimePatternLevelColor(timePattern.type),
                     confidence: ((timePattern.confidence || 0) * 100).toFixed(1) + '%',
                     morningRatio: ((stats.morning_ratio || 0) * 100).toFixed(1) + '%',
@@ -1388,37 +1390,6 @@ class DimensionController {
         return colors[type] || 'secondary';
     }
 
-    // 计算时间习惯排名
-    calculateTimePatternRank(user, timePattern) {
-        if (!timePattern || !timePattern.type) return 999;
-
-        const type = timePattern.type;
-        const stats = timePattern.stats || {};
-
-        // 根据不同类型计算排名分数
-        let score = 0;
-        switch (type) {
-            case '作息规律':
-            case '规律型':
-                score = (stats.regular_hours_ratio || 0) * 100;
-                break;
-            case '早上型':
-                score = (stats.morning_ratio || 0) * 100;
-                break;
-            case '熬夜大佬':
-            case '熬夜型':
-                score = (stats.early_morning_ratio || stats.night_ratio || 0) * 100;
-                break;
-            case '不规律作息型':
-                score = 100 - (stats.regular_hours_ratio || 0) * 100;
-                break;
-            default:
-                return 999;
-        }
-
-        // 将分数转换为排名（分数越高排名越靠前）
-        return Math.max(1, Math.round((100 - score) + 1));
-    }
 
     // 获取当前维度的排序值
     getCurrentSortValue(user) {
@@ -1439,11 +1410,8 @@ class DimensionController {
                 // 发言类型按消息数排序
                 return user.message_count || 0;
             case 'time_pattern':
-                // 时间习惯按排名排序（排名越小越靠前）
-                const timeData = user.dimensions?.time_pattern;
-                if (!timeData) return -1;
-                const rank = this.calculateTimePatternRank(user, timeData);
-                return 1000 - rank; // 转换为降序排序
+                // 时间习惯按消息数排序
+                return user.message_count || 0;
             default:
                 return 0;
         }
@@ -1472,19 +1440,16 @@ class DimensionController {
                     user.all_groups ? user.all_groups.length : 1,
                     dimData.count,
                     `<span class="badge bg-${dimData.color}">${dimData.level}</span>`,
-                    `<span class="badge bg-success">置信度: ${dimData.confidence}</span>`,
                     this.formatUserTags(user.profile_summary?.tags || []),
                     `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
                 ];
             } else if (this.currentDimension === 'time_pattern') {
-                const rankDisplay = dimData.rank === 999 ? '未排名' : `#${dimData.rank}`;
                 return [
                     user.nickname,
                     user.main_group || '未知群组',
                     user.all_groups ? user.all_groups.length : 1,
                     dimData.count,
                     `<span class="badge bg-${dimData.color}">${dimData.level}</span>`,
-                    `<span class="badge bg-info">排名 ${rankDisplay}</span>`,
                     `<div class="time-stats">
                         <small>早: ${dimData.morningRatio}</small><br>
                         <small>晚: ${dimData.eveningRatio}</small><br>
@@ -1553,10 +1518,10 @@ class DimensionController {
                 autoWidth: false,       // 禁用自动宽度
                 order: this.currentDimension === 'member_join_time' ? [] : [[3, 'desc']], // 加群时间维度使用预排序
                 columnDefs: [
-                    { targets: [7], orderable: false, searchable: false },
+                    { targets: -1, orderable: false, searchable: false }, // 最后一列（详情按钮）不可排序
                     { targets: [2], type: 'num' } // 群组数量列
                 ],
-                dom: 'frtip' // 保留搜索框，移除长度选择器，保留表格、信息和分页
+                dom: '<"top"f>rt<"bottom"ip><"clear">' // 搜索框在顶部，信息和分页在底部
             };
 
             // 根据不同维度调整列配置
@@ -1590,6 +1555,9 @@ class DimensionController {
             }
 
             $('#usersTable').DataTable(tableConfig);
+
+            // 清理重复的搜索框
+            this.cleanupDuplicateSearchBoxes();
         }
 
         // 初始化移动端表格
@@ -1607,11 +1575,11 @@ class DimensionController {
                 autoWidth: false,       // 禁用自动宽度
                 order: this.currentDimension === 'member_join_time' ? [] : [[1, 'desc']], // 加群时间维度使用预排序
                 columnDefs: [
-                    { targets: [3], orderable: false, searchable: false }
+                    { targets: -1, orderable: false, searchable: false } // 最后一列（详情按钮）不可排序
                 ],
                 lengthChange: false,    // 移动端隐藏改变每页条数
                 info: false,            // 移动端隐藏信息
-                dom: 'frtip'            // 移动端保留搜索框，移除长度选择器
+                dom: '<"top"f>rt<"clear">' // 移动端：搜索框在顶部，表格在中间
             };
 
             // 根据不同维度调整移动端列配置
@@ -1642,7 +1610,44 @@ class DimensionController {
             }
 
             $('#usersTableMobile').DataTable(mobileTableConfig);
+
+            // 清理重复的搜索框
+            this.cleanupDuplicateSearchBoxes();
         }
+    }
+
+    // 清理重复的搜索框
+    cleanupDuplicateSearchBoxes() {
+        // 延迟执行，确保DataTables完全初始化
+        setTimeout(() => {
+            // 清理桌面端表格的重复搜索框 - 只保留.top容器中的搜索框
+            const desktopFilters = $('#usersTable_wrapper .dataTables_filter');
+            if (desktopFilters.length > 1) {
+                console.log(`发现${desktopFilters.length}个桌面端搜索框，只保留顶部的`);
+                // 移除不在.top容器中的搜索框
+                desktopFilters.each(function(index, filter) {
+                    if (!$(filter).closest('.top').length) {
+                        $(filter).remove();
+                        console.log('移除了底部搜索框');
+                    }
+                });
+            }
+
+            // 清理移动端表格的重复搜索框 - 只保留.top容器中的搜索框
+            const mobileFilters = $('#usersTableMobile_wrapper .dataTables_filter');
+            if (mobileFilters.length > 1) {
+                console.log(`发现${mobileFilters.length}个移动端搜索框，只保留顶部的`);
+                // 移除不在.top容器中的搜索框
+                mobileFilters.each(function(index, filter) {
+                    if (!$(filter).closest('.top').length) {
+                        $(filter).remove();
+                        console.log('移除了移动端底部搜索框');
+                    }
+                });
+            }
+
+            console.log('搜索框清理完成');
+        }, 200);
     }
 
     // 格式化用户标签

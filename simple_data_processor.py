@@ -158,8 +158,7 @@ class SimpleUserProfileProcessor:
                         'rank': rank + 1  # rank是0开始的，显示时+1
                     },
                     'content_type': {
-                        'type': content_type,
-                        'confidence': 0.8
+                        'type': content_type
                     },
                     'time_pattern': {
                         'type': "规律型" if evening_count > night_count else "熬夜型" if stats['message_count'] > 0 else "未知",

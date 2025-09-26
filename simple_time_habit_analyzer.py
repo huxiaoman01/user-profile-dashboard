@@ -194,8 +194,7 @@ class SimpleTimeHabitAnalyzer:
                     user['dimensions']['time_pattern'] = {
                         'type': time_data['time_type'],
                         'stats': time_data['detailed_stats'],
-                        'hour_distribution': time_data['hour_counts'],
-                        'confidence': self.calculate_confidence(time_data)
+                        'hour_distribution': time_data['hour_counts']
                     }
 
                     time_type_counts[time_data['time_type']] += 1
@@ -217,21 +216,6 @@ class SimpleTimeHabitAnalyzer:
         except Exception as e:
             print(f"更新analytics文件失败: {e}")
 
-    def calculate_confidence(self, time_data):
-        """计算时间习惯分类的置信度"""
-        time_type = time_data['time_type']
-        ratios = time_data['range_ratios']
-
-        if time_type == "早上型":
-            return min(1.0, ratios['morning'] / 0.4)
-        elif time_type == "熬夜大佬":
-            return min(1.0, ratios['early_morning'] / 0.3)
-        elif time_type == "作息规律":
-            return min(1.0, ratios['regular_hours'] / 0.8)
-        elif time_type == "不规律作息型":
-            return min(1.0, time_data['segments_above_20_percent'] / 3.0)
-        else:
-            return 0.5
 
     def run_analysis(self):
         """运行完整的时间习惯分析"""

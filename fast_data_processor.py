@@ -79,12 +79,11 @@ class FastUserProfileProcessor:
                     type_scores[content_type] += 1
 
         if not type_scores:
-            return '闲聊型', 0.3
+            return '闲聊型'
 
         max_type = max(type_scores, key=type_scores.get)
-        confidence = type_scores[max_type] / len(messages)
 
-        return max_type, min(confidence, 1.0)
+        return max_type
 
     def analyze_time_pattern(self, hours):
         """快速时间模式分析"""
@@ -179,7 +178,7 @@ class FastUserProfileProcessor:
                 'message_count': 0,
                 'dimensions': {
                     'message_volume': {'level': '极少发言人', 'count': 0},
-                    'content_type': {'type': '闲聊型', 'confidence': 0},
+                    'content_type': {'type': '闲聊型'},
                     'time_pattern': {'type': '未知', 'stats': {}},
                     'social_behavior': {'type': '一般型', 'metrics': {}},
                     'sentiment': {'type': '中性', 'score': 0.5}
@@ -191,7 +190,7 @@ class FastUserProfileProcessor:
         contents = user_messages['message_content'].tolist()
         hours = user_messages['hour'].dropna().tolist()
 
-        content_type, content_conf = self.classify_content_type(contents)
+        content_type = self.classify_content_type(contents)
         time_type, time_stats = self.analyze_time_pattern(hours)
         social_type, social_metrics = self.analyze_social_behavior(user_messages)
         sentiment_type, sentiment_score = self.analyze_sentiment(contents)
@@ -244,8 +243,7 @@ class FastUserProfileProcessor:
                     'rank': 0  # 后续计算
                 },
                 'content_type': {
-                    'type': content_type,
-                    'confidence': round(content_conf, 3)
+                    'type': content_type
                 },
                 'time_pattern': {
                     'type': time_type,

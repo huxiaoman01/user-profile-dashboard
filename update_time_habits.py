@@ -155,18 +155,6 @@ class TimeHabitUpdater:
             else:
                 return "不规律作息型"
 
-    def calculate_confidence(self, time_type, range_ratios, segments_above_20):
-        """计算分类置信度"""
-        if time_type == "早上型":
-            return min(1.0, range_ratios['morning'] / 0.4)
-        elif time_type == "熬夜大佬":
-            return min(1.0, range_ratios['early_morning'] / 0.3)
-        elif time_type == "作息规律":
-            return min(1.0, range_ratios['regular_hours'] / 0.8)
-        elif time_type == "不规律作息型":
-            return min(1.0, segments_above_20 / 3.0)
-        else:
-            return 0.5
 
     def update_time_habits(self):
         """更新所有用户的时间习惯分类"""
@@ -189,8 +177,6 @@ class TimeHabitUpdater:
                 # 分类时间习惯
                 new_time_type = self.classify_time_habit(range_ratios, segments_above_20)
 
-                # 计算置信度
-                confidence = self.calculate_confidence(new_time_type, range_ratios, segments_above_20)
 
                 # 更新用户数据
                 if 'dimensions' not in user:
@@ -206,8 +192,7 @@ class TimeHabitUpdater:
                         'regular_hours_ratio': range_ratios['regular_hours']
                     },
                     'hour_distribution': hour_distribution,
-                    'segments_above_20_percent': segments_above_20,
-                    'confidence': confidence
+                    'segments_above_20_percent': segments_above_20
                 }
 
                 time_type_counts[new_time_type] += 1
