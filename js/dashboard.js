@@ -1,12 +1,28 @@
 // 小小纺用户画像分析平台 - 主要逻辑
 
 let analyticsData = null;
+let dimensionController = null;
 
 // 页面加载完成后执行
 $(document).ready(function() {
     loadAnalyticsData();
     initializeModalFix();
 });
+
+// 初始化维度控制器
+function initializeDimensionController() {
+    try {
+        if (!dimensionController) {
+            console.log('创建新的维度控制器实例...');
+            dimensionController = new DimensionController();
+            window.dimensionController = dimensionController; // 全局访问
+            console.log('维度控制器实例创建成功');
+        }
+    } catch (error) {
+        console.error('维度控制器初始化失败:', error);
+        throw error;
+    }
+}
 
 // 初始化模态框跳跃修复 - 彻底阻止Bootstrap默认行为
 function initializeModalFix() {
@@ -71,31 +87,68 @@ function initializeModalFix() {
 
 // 加载分析数据
 function loadAnalyticsData() {
-    $.getJSON('data/analytics.json')
-        .done(function(data) {
-            analyticsData = data;
-            initializeDashboard();
-        })
-        .fail(function() {
-            showError('数据加载失败，请确保已运行数据处理脚本生成analytics.json文件');
+    console.log('开始加载分析数据...');
+
+    $.ajax({
+        url: 'data/analytics.json',
+        dataType: 'json',
+        cache: false,
+        timeout: 30000,
+        beforeSend: function(xhr) {
+            xhr.overrideMimeType('application/json; charset=utf-8');
+        }
+    })
+    .done(function(data) {
+        console.log('数据加载成功:', data);
+        analyticsData = data;
+        initializeDashboard();
+    })
+    .fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('数据加载失败:', {
+            status: jqXHR.status,
+            statusText: textStatus,
+            errorThrown: errorThrown,
+            responseText: jqXHR.responseText ? jqXHR.responseText.substring(0, 200) : 'null'
         });
+        showError('数据加载失败，请确保已运行数据处理脚本生成analytics.json文件<br>错误详情: ' + textStatus + ' - ' + errorThrown);
+    });
 }
 
 // 初始化仪表板
 function initializeDashboard() {
-    if (!analyticsData) return;
-    
-    // 更新统计数据
-    updateStats();
-    
-    // 初始化用户表格
-    initializeUsersTable();
-    
-    // 初始化图表
-    initializeCharts();
-    
-    // 生成词云
-    generateWordCloud();
+    if (!analyticsData) {
+        console.error('analyticsData is null or undefined');
+        return;
+    }
+
+    console.log('开始初始化仪表板...', analyticsData);
+
+    try {
+        // 更新统计数据
+        updateStats();
+        console.log('统计数据更新完成');
+
+        // 初始化维度控制器
+        initializeDimensionController();
+        console.log('维度控制器初始化完成');
+
+        // 设置维度控制器数据
+        if (dimensionController) {
+            dimensionController.setData(analyticsData);
+            console.log('维度控制器数据设置完成');
+        } else {
+            console.error('dimensionController is null');
+        }
+
+        // 生成词云
+        generateWordCloud();
+        console.log('词云生成完成');
+
+        console.log('仪表板初始化完成');
+    } catch (error) {
+        console.error('仪表板初始化失败:', error);
+        showError('仪表板初始化失败: ' + error.message);
+    }
 }
 
 // 更新统计数据
@@ -116,11 +169,11 @@ function initializeUsersTable() {
     const tableData = users.map(user => [
         user.nickname,
         user.main_group || '未知群组',
-        user.group_count || 1,
+        user.all_groups ? user.all_groups.length : 1,
         user.message_count || 0,
-        `<span class="badge bg-${getCategoryColor(user.user_category)}">${user.user_category}</span>`,
-        `<span class="badge bg-${getStatusColor(user.portrait_status)}">${user.portrait_status}</span>`,
-        formatUserTags(user.keywords),
+        `<span class="badge bg-${getCategoryColor(user.dimensions?.message_volume?.level)}">${user.dimensions?.message_volume?.level || '未知'}</span>`,
+        `<span class="badge bg-info">活跃度 #${user.dimensions?.message_volume?.rank || '?'}</span>`,
+        formatUserTags(user.profile_summary?.tags || []),
         `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
     ]);
     
@@ -129,10 +182,10 @@ function initializeUsersTable() {
         `<div class="mobile-user-info">
             <div class="mobile-user-name">${user.nickname}</div>
             <div class="mobile-user-group">${user.main_group || '未知群组'}</div>
-            <div class="mobile-user-tags">${formatUserTagsMobile(user.keywords)}</div>
+            <div class="mobile-user-tags">${formatUserTagsMobile(user.profile_summary?.tags || [])}</div>
         </div>`,
         user.message_count || 0,
-        `<span class="badge bg-${getCategoryColor(user.user_category)}" style="font-size: 0.65rem;">${getShortUserCategory(user.user_category)}</span>`,
+        `<span class="badge bg-${getCategoryColor(user.dimensions?.message_volume?.level)}" style="font-size: 0.65rem;">${getShortUserCategory(user.dimensions?.message_volume?.level)}</span>`,
         `<button class="btn btn-primary btn-mobile" onclick="showUserDetailMobile('${user.user_id}')">详情</button>`
     ]);
     
@@ -176,10 +229,16 @@ function initializeUsersTable() {
 // 获取用户类型颜色
 function getCategoryColor(category) {
     const colors = {
+        '主要发言人': 'primary',
+        '稳定发言人': 'success',
+        '少量发言人': 'warning',
+        '极少发言人': 'danger',
         '高价值用户': 'success',
         '潜在用户': 'info',
         '新用户': 'warning',
-        '沉默用户': 'secondary'
+        '沉默用户': 'secondary',
+        '老成员': 'info',
+        '新成员': 'warning'
     };
     return colors[category] || 'secondary';
 }
@@ -196,38 +255,40 @@ function getStatusColor(status) {
 }
 
 // 格式化用户标签
-function formatUserTags(keywords) {
-    if (!keywords || keywords.length === 0) {
-        return '<span class="user-tag">未分类</span>';
+function formatUserTags(tags) {
+    if (!tags || tags.length === 0) {
+        return '<span class="badge bg-secondary">未分类</span>';
     }
-    
-    return keywords.map(tag => 
-        `<span class="user-tag tag-${tag}">${tag}</span>`
-    ).join(' ');
+
+    return tags.slice(0, 3).map(tag =>
+        `<span class="badge bg-light text-dark me-1">${tag}</span>`
+    ).join('');
 }
 
 // 格式化移动端用户标签（简化版）
-function formatUserTagsMobile(keywords) {
-    if (!keywords || keywords.length === 0) {
-        return '<span class="user-tag">未分类</span>';
+function formatUserTagsMobile(tags) {
+    if (!tags || tags.length === 0) {
+        return '<span class="badge bg-secondary">未分类</span>';
     }
-    
-    // 移动端只显示前2个标签
-    const limitedTags = keywords.slice(0, 2);
-    let result = limitedTags.map(tag => 
-        `<span class="user-tag tag-${tag}">${tag}</span>`
+
+    let result = tags.slice(0, 2).map(tag =>
+        `<span class="badge bg-light text-dark">${tag}</span>`
     ).join(' ');
-    
-    if (keywords.length > 2) {
-        result += `<span class="user-tag">+${keywords.length - 2}</span>`;
+
+    if (tags.length > 2) {
+        result += `<span class="badge bg-secondary">+${tags.length - 2}</span>`;
     }
-    
+
     return result;
 }
 
 // 获取简短的用户类型名称
 function getShortUserCategory(category) {
     const shortNames = {
+        '主要发言人': '主要',
+        '稳定发言人': '稳定',
+        '少量发言人': '少量',
+        '极少发言人': '极少',
         '高价值用户': '高价值',
         '潜在用户': '潜在',
         '新用户': '新用户',
@@ -341,6 +402,14 @@ function showUserDetailMobile(userId) {
 
 // 生成用户详情HTML
 function generateUserDetailHtml(user, userId) {
+    const dims = user.dimensions || {};
+    const msgVol = dims.message_volume || {};
+    const contentType = dims.content_type || {};
+    const timePattern = dims.time_pattern || {};
+    const socialBehavior = dims.social_behavior || {};
+    const sentiment = dims.sentiment || {};
+    const profileSummary = user.profile_summary || {};
+
     return `
         <div class="user-info-item">
             <div class="user-info-label">用户昵称</div>
@@ -357,32 +426,71 @@ function generateUserDetailHtml(user, userId) {
         <div class="user-info-item">
             <div class="user-info-label">用户统计</div>
             <div class="user-info-content">
-                消息数: ${user.message_count}条 | 
-                平均消息长度: ${user.avg_message_length ? user.avg_message_length.toFixed(1) : 0}字符 | 
-                参与群数: ${user.group_count}个
+                消息数: ${user.message_count || 0}条 |
+                平均消息长度: ${user.avg_message_length ? user.avg_message_length.toFixed(1) : 0}字符 |
+                参与群数: ${user.all_groups ? user.all_groups.length : 1}个
             </div>
         </div>
         <div class="user-info-item">
-            <div class="user-info-label">用户分类</div>
+            <div class="user-info-label">发言量分类</div>
             <div class="user-info-content">
-                <span class="badge bg-${getCategoryColor(user.user_category)}">${user.user_category}</span>
+                <span class="badge bg-${getCategoryColor(msgVol.level)}">${msgVol.level || '未知'}</span>
+                <small class="text-muted d-block mt-1">排名: #${msgVol.rank || '?'}</small>
             </div>
         </div>
         <div class="user-info-item">
-            <div class="user-info-label">画像状态</div>
+            <div class="user-info-label">发言类型</div>
             <div class="user-info-content">
-                <span class="badge bg-${getStatusColor(user.portrait_status)}">${user.portrait_status}</span>
-                <small class="text-muted d-block mt-1">${user.portrait_reason}</small>
+                <span class="badge bg-info">${contentType.type || '未知'}</span>
+                <small class="text-muted d-block mt-1">置信度: ${((contentType.confidence || 0) * 100).toFixed(1)}%</small>
             </div>
         </div>
         <div class="user-info-item">
-            <div class="user-info-label">兴趣标签</div>
-            <div class="user-info-content">${formatUserTags(user.keywords)}</div>
+            <div class="user-info-label">时间习惯</div>
+            <div class="user-info-content">
+                <span class="badge bg-success">${timePattern.type || '未知'}</span>
+            </div>
         </div>
         <div class="user-info-item">
-            <div class="user-info-label">详细画像</div>
+            <div class="user-info-label">社交行为</div>
             <div class="user-info-content">
-                ${formatImpressionText(user.impression, user.portrait_reason, userId)}
+                <span class="badge bg-warning">${socialBehavior.type || '未知'}</span>
+            </div>
+        </div>
+        <div class="user-info-item">
+            <div class="user-info-label">情感倾向</div>
+            <div class="user-info-content">
+                <span class="badge bg-primary">${sentiment.type || '未知'}</span>
+                <small class="text-muted d-block mt-1">评分: ${((sentiment.score || 0.5) * 100).toFixed(0)}%</small>
+            </div>
+        </div>
+        <div class="user-info-item">
+            <div class="user-info-label">加群时间</div>
+            <div class="user-info-content">
+                <span class="badge bg-${getCategoryColor(dims.member_join_time?.type)}">${dims.member_join_time?.type || '未知'}</span>
+                <small class="text-muted d-block mt-1">
+                    加群日期: ${dims.member_join_time?.join_date || '未知'} |
+                    在群天数: ${dims.member_join_time?.days_since_join || 0}天 |
+                    活跃度: ${dims.member_join_time?.activity_level || '未知'}
+                </small>
+            </div>
+        </div>
+        <div class="user-info-item">
+            <div class="user-info-label">用户标签</div>
+            <div class="user-info-content">${formatUserTags(profileSummary.tags || [])}</div>
+        </div>
+        <div class="user-info-item">
+            <div class="user-info-label">用户画像</div>
+            <div class="user-info-content">${profileSummary.description || '暂无详细描述'}</div>
+        </div>
+        <div class="user-info-item">
+            <div class="user-info-label">活跃评分</div>
+            <div class="user-info-content">
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" style="width: ${(profileSummary.active_score || 0) * 100}%" aria-valuenow="${(profileSummary.active_score || 0) * 100}" aria-valuemin="0" aria-valuemax="100">
+                        ${((profileSummary.active_score || 0) * 100).toFixed(0)}%
+                    </div>
+                </div>
             </div>
         </div>
     `;

@@ -1,8 +1,60 @@
-/* 小小纺用户画像分析平台 - 自定义样式 */
+/* 星纬AI用户画像分析平台 - 自定义样式 */
 
 body {
     background-color: #f8f9fa;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* 控制面板样式 */
+.control-panel .card {
+    border: 1px solid #e3f2fd;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.control-panel .card-header {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border-bottom: 1px solid #90caf9;
+    color: #1565c0;
+}
+
+/* 维度选项卡样式 */
+#dimensionTabs .nav-link {
+    border-radius: 25px;
+    margin-right: 8px;
+    padding: 8px 16px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+#dimensionTabs .nav-link:hover {
+    background-color: #e3f2fd;
+    border-color: #90caf9;
+    transform: translateY(-2px);
+}
+
+#dimensionTabs .nav-link.active {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    border-color: #0056b3;
+    color: white;
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
+
+#dimensionTabs .nav-link i {
+    margin-right: 6px;
+}
+
+/* 群组选择器样式 */
+#groupSelector {
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+#groupSelector:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
 /* 卡片样式 */
@@ -650,4 +702,50 @@ body.modal-open {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #555;
+}
+
+/* 动态统计卡片增强样式 */
+#dynamicStats .card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 2px solid transparent;
+}
+
+#dynamicStats .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+#dynamicStats .card.border-primary:hover {
+    border-color: #007bff;
+}
+
+#dynamicStats .card.border-success:hover {
+    border-color: #28a745;
+}
+
+#dynamicStats .card.border-info:hover {
+    border-color: #17a2b8;
+}
+
+#dynamicStats .card.border-warning:hover {
+    border-color: #ffc107;
+}
+
+#dynamicStats .display-4 {
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 洞察卡片样式 */
+#dynamicStats .card ul li {
+    margin-bottom: 8px;
+    position: relative;
+    padding-left: 20px;
+}
+
+#dynamicStats .card ul li:before {
+    content: "💡";
+    position: absolute;
+    left: 0;
+    top: 0;
 }

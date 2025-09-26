@@ -43,7 +43,7 @@
         "管理学院2025新生群",
         "2025U–coder编程俱乐部招新群",
         "U-coder编程俱乐部正式群",
-        null,
+        NaN,
         "小小纺水群测试裙+知识学习群",
         "武汉纺织大学2025千里IT协会招新群",
         "小小纺水群测试裙",
@@ -312,7 +312,7 @@
         "小小纺水群测试裙+知识学习群",
         "2025U–coder编程俱乐部招新群",
         "小小纺聊天群",
-        null,
+        NaN,
         "武汉纺织大学2025千里IT协会招新群"
       ],
       "message_count": 398,
@@ -366,7 +366,7 @@
       "all_groups": [
         "管理学院2025新生群",
         "2025U–coder编程俱乐部招新群",
-        null,
+        NaN,
         "武汉纺织大学2025千里IT协会招新群",
         "U-coder编程俱乐部正式群"
       ],
@@ -730,7 +730,7 @@
       "all_groups": [
         "U-coder编程俱乐部正式群",
         "2025U–coder编程俱乐部招新群",
-        null
+        NaN
       ],
       "message_count": 201,
       "avg_message_length": 7.9,
@@ -782,7 +782,7 @@
       "main_group": "管理学院2025新生群",
       "all_groups": [
         "管理学院2025新生群",
-        null,
+        NaN,
         "2025U–coder编程俱乐部招新群"
       ],
       "message_count": 190,
@@ -884,9 +884,9 @@
     {
       "user_id": "2608855988",
       "nickname": "陶淑然",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null,
+        NaN,
         "U-coder编程俱乐部正式群",
         "2025U–coder编程俱乐部招新群"
       ],
@@ -1046,7 +1046,7 @@
       "all_groups": [
         "2025U–coder编程俱乐部招新群",
         "U-coder编程俱乐部正式群",
-        null
+        NaN
       ],
       "message_count": 156,
       "avg_message_length": 10.5,
@@ -1100,7 +1100,7 @@
         "U-coder编程俱乐部正式群",
         "管理学院2025新生群",
         "2025U–coder编程俱乐部招新群",
-        null
+        NaN
       ],
       "message_count": 154,
       "avg_message_length": 21.4,
@@ -1203,7 +1203,7 @@
       "main_group": "管理学院2025新生群",
       "all_groups": [
         "管理学院2025新生群",
-        null
+        NaN
       ],
       "message_count": 127,
       "avg_message_length": 15.4,
@@ -1308,7 +1308,7 @@
         "管理学院2025新生群",
         "U-coder编程俱乐部正式群",
         "武汉纺织大学2025千里IT协会招新群",
-        null,
+        NaN,
         "2025U–coder编程俱乐部招新群"
       ],
       "message_count": 126,
@@ -1361,7 +1361,7 @@
       "main_group": "管理学院2025新生群",
       "all_groups": [
         "管理学院2025新生群",
-        null
+        NaN
       ],
       "message_count": 123,
       "avg_message_length": 21.7,
@@ -1619,7 +1619,7 @@
         "管理学院2025新生群",
         "U-coder编程俱乐部正式群",
         "小组名叫啥好捏",
-        null,
+        NaN,
         "小小纺水群测试裙+知识学习群",
         "2025U–coder编程俱乐部招新群",
         "小小纺聊天群"
@@ -2080,9 +2080,9 @@
     {
       "user_id": "3918936089",
       "nickname": "日暮西沉",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null,
+        NaN,
         "2025U–coder编程俱乐部招新群",
         "U-coder编程俱乐部正式群"
       ],
@@ -2138,7 +2138,7 @@
         "管理学院2025新生群",
         "U-coder编程俱乐部正式群",
         "2025U–coder编程俱乐部招新群",
-        null
+        NaN
       ],
       "message_count": 73,
       "avg_message_length": 23.9,
@@ -2243,7 +2243,7 @@
       "main_group": "管理学院2025新生群",
       "all_groups": [
         "管理学院2025新生群",
-        null
+        NaN
       ],
       "message_count": 72,
       "avg_message_length": 40.9,
@@ -2295,7 +2295,7 @@
       "main_group": "2025U–coder编程俱乐部招新群",
       "all_groups": [
         "2025U–coder编程俱乐部招新群",
-        null,
+        NaN,
         "U-coder编程俱乐部正式群"
       ],
       "message_count": 70,
@@ -2608,7 +2608,7 @@
       "main_group": "2025U–coder编程俱乐部招新群",
       "all_groups": [
         "2025U–coder编程俱乐部招新群",
-        null,
+        NaN,
         "U-coder编程俱乐部正式群"
       ],
       "message_count": 61,
@@ -2709,9 +2709,9 @@
     {
       "user_id": "2381969850",
       "nickname": "物生技",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null,
+        NaN,
         "管理学院2025新生群",
         "武汉纺织大学2025千里IT协会招新群",
         "2025U–coder编程俱乐部招新群"
@@ -2871,7 +2871,7 @@
       "main_group": "2025U–coder编程俱乐部招新群",
       "all_groups": [
         "2025U–coder编程俱乐部招新群",
-        null
+        NaN
       ],
       "message_count": 53,
       "avg_message_length": 19.1,
@@ -2975,7 +2975,7 @@
       "all_groups": [
         "U-coder编程俱乐部正式群",
         "2025U–coder编程俱乐部招新群",
-        null
+        NaN
       ],
       "message_count": 50,
       "avg_message_length": 39.1,
@@ -3028,7 +3028,7 @@
       "all_groups": [
         "管理学院2025新生群",
         "2025U–coder编程俱乐部招新群",
-        null
+        NaN
       ],
       "message_count": 50,
       "avg_message_length": 13.2,
@@ -3077,9 +3077,9 @@
     {
       "user_id": "3279694505",
       "nickname": "卷被被",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null,
+        NaN,
         "2025U–coder编程俱乐部招新群"
       ],
       "message_count": 49,
@@ -3440,7 +3440,7 @@
       "main_group": "2025U–coder编程俱乐部招新群",
       "all_groups": [
         "2025U–coder编程俱乐部招新群",
-        null
+        NaN
       ],
       "message_count": 42,
       "avg_message_length": 12.3,
@@ -3898,9 +3898,9 @@
     {
       "user_id": "1549034862",
       "nickname": "神苍仙穹",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null,
+        NaN,
         "管理学院2025新生群"
       ],
       "message_count": 33,
@@ -3953,7 +3953,7 @@
       "main_group": "2025U–coder编程俱乐部招新群",
       "all_groups": [
         "2025U–coder编程俱乐部招新群",
-        null
+        NaN
       ],
       "message_count": 33,
       "avg_message_length": 7.3,
@@ -4564,9 +4564,9 @@
     {
       "user_id": "2658477617",
       "nickname": "屋芜伍雾",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null
+        NaN
       ],
       "message_count": 27,
       "avg_message_length": 5.5,
@@ -4618,7 +4618,7 @@
       "main_group": "小小纺聊天群",
       "all_groups": [
         "小小纺聊天群",
-        null
+        NaN
       ],
       "message_count": 26,
       "avg_message_length": 18.1,
@@ -4667,9 +4667,9 @@
     {
       "user_id": "414397331",
       "nickname": "Cat",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null
+        NaN
       ],
       "message_count": 26,
       "avg_message_length": 4.9,
@@ -4718,9 +4718,9 @@
     {
       "user_id": "3801714824",
       "nickname": "埃勒里·雷恩",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null,
+        NaN,
         "管理学院2025新生群"
       ],
       "message_count": 25,
@@ -4825,7 +4825,7 @@
       "all_groups": [
         "U-coder编程俱乐部正式群",
         "2025U–coder编程俱乐部招新群",
-        null
+        NaN
       ],
       "message_count": 25,
       "avg_message_length": 30.9,
@@ -5030,7 +5030,7 @@
       "main_group": "2025U–coder编程俱乐部招新群",
       "all_groups": [
         "2025U–coder编程俱乐部招新群",
-        null
+        NaN
       ],
       "message_count": 25,
       "avg_message_length": 22.2,
@@ -5338,7 +5338,7 @@
       "all_groups": [
         "U-coder编程俱乐部正式群",
         "2025U–coder编程俱乐部招新群",
-        null
+        NaN
       ],
       "message_count": 23,
       "avg_message_length": 11.4,
@@ -6204,9 +6204,9 @@
     {
       "user_id": "2352975940",
       "nickname": "yiqqqq",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null,
+        NaN,
         "U-coder编程俱乐部正式群"
       ],
       "message_count": 18,
@@ -6566,7 +6566,7 @@
       "main_group": "2025U–coder编程俱乐部招新群",
       "all_groups": [
         "2025U–coder编程俱乐部招新群",
-        null
+        NaN
       ],
       "message_count": 17,
       "avg_message_length": 19.2,
@@ -6822,7 +6822,7 @@
       "main_group": "管理学院2025新生群",
       "all_groups": [
         "管理学院2025新生群",
-        null
+        NaN
       ],
       "message_count": 15,
       "avg_message_length": 26.9,
@@ -7184,7 +7184,7 @@
       "all_groups": [
         "U-coder编程俱乐部正式群",
         "失榆彬的小跟班、啊呜再也不垫池子了、陶淑然、79岁悲郁少女、heath、夏殇、cccccondition",
-        null
+        NaN
       ],
       "message_count": 14,
       "avg_message_length": 15.6,
@@ -7696,9 +7696,9 @@
     {
       "user_id": "3921374893",
       "nickname": "小羊苏西",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null,
+        NaN,
         "管理学院2025新生群"
       ],
       "message_count": 12,
@@ -8669,7 +8669,7 @@
       "main_group": "管理学院2025新生群",
       "all_groups": [
         "管理学院2025新生群",
-        null
+        NaN
       ],
       "message_count": 10,
       "avg_message_length": 15.8,
@@ -9283,7 +9283,7 @@
       "main_group": "武汉纺织大学2025级官方新生群",
       "all_groups": [
         "武汉纺织大学2025级官方新生群",
-        null
+        NaN
       ],
       "message_count": 9,
       "avg_message_length": 19.0,
@@ -9383,9 +9383,9 @@
     {
       "user_id": "3291151317",
       "nickname": "。",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null
+        NaN
       ],
       "message_count": 9,
       "avg_message_length": 6.0,
@@ -10256,7 +10256,7 @@
       "main_group": "2025U–coder编程俱乐部招新群",
       "all_groups": [
         "2025U–coder编程俱乐部招新群",
-        null
+        NaN
       ],
       "message_count": 8,
       "avg_message_length": 11.6,
@@ -11223,9 +11223,9 @@
     {
       "user_id": "1084950544",
       "nickname": "影忍",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null,
+        NaN,
         "U-coder编程俱乐部正式群"
       ],
       "message_count": 7,
@@ -11938,9 +11938,9 @@
     {
       "user_id": "2390403819",
       "nickname": "ℨℨ.ℭ.ℑ",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null
+        NaN
       ],
       "message_count": 6,
       "avg_message_length": 3.7,
@@ -12248,7 +12248,7 @@
       "main_group": "管理学院2025新生群",
       "all_groups": [
         "管理学院2025新生群",
-        null
+        NaN
       ],
       "message_count": 5,
       "avg_message_length": 15.2,
@@ -12912,7 +12912,7 @@
       "main_group": "管理学院2025新生群",
       "all_groups": [
         "管理学院2025新生群",
-        null
+        NaN
       ],
       "message_count": 5,
       "avg_message_length": 12.0,
@@ -13625,9 +13625,9 @@
     {
       "user_id": "3271828814",
       "nickname": "🍀",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null,
+        NaN,
         "2025U–coder编程俱乐部招新群"
       ],
       "message_count": 5,
@@ -13884,7 +13884,7 @@
       "main_group": "U-coder编程俱乐部正式群",
       "all_groups": [
         "U-coder编程俱乐部正式群",
-        null
+        NaN
       ],
       "message_count": 5,
       "avg_message_length": 7.4,
@@ -14906,7 +14906,7 @@
       "main_group": "管理学院2025新生群",
       "all_groups": [
         "管理学院2025新生群",
-        null
+        NaN
       ],
       "message_count": 4,
       "avg_message_length": 36.2,
@@ -17711,9 +17711,9 @@
     {
       "user_id": "1364344770",
       "nickname": "啊我爱早点睡觉",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null
+        NaN
       ],
       "message_count": 3,
       "avg_message_length": 18.3,
@@ -17762,9 +17762,9 @@
     {
       "user_id": "1714554394",
       "nickname": "-",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null
+        NaN
       ],
       "message_count": 3,
       "avg_message_length": 13.0,
@@ -19037,9 +19037,9 @@
     {
       "user_id": "3518202426",
       "nickname": "超几何分布",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null
+        NaN
       ],
       "message_count": 2,
       "avg_message_length": 15.5,
@@ -20721,9 +20721,9 @@
     {
       "user_id": "1396104400",
       "nickname": "惟风",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null
+        NaN
       ],
       "message_count": 2,
       "avg_message_length": 3.0,
@@ -20772,9 +20772,9 @@
     {
       "user_id": "2370268812",
       "nickname": "x",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null
+        NaN
       ],
       "message_count": 2,
       "avg_message_length": 2.5,
@@ -22557,9 +22557,9 @@
     {
       "user_id": "281123556",
       "nickname": "Seb",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null
+        NaN
       ],
       "message_count": 1,
       "avg_message_length": 31.0,
@@ -22710,9 +22710,9 @@
     {
       "user_id": "3819218407",
       "nickname": "鱼崽",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null
+        NaN
       ],
       "message_count": 1,
       "avg_message_length": 30.0,
@@ -25416,7 +25416,7 @@
       "main_group": "2025U–coder编程俱乐部招新群",
       "all_groups": [
         "2025U–coder编程俱乐部招新群",
-        null
+        NaN
       ],
       "message_count": 1,
       "avg_message_length": 38.0,
@@ -25771,9 +25771,9 @@
     {
       "user_id": "996511420",
       "nickname": "好仁",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null
+        NaN
       ],
       "message_count": 1,
       "avg_message_length": 30.0,
@@ -25975,9 +25975,9 @@
     {
       "user_id": "2560423743",
       "nickname": "南唐多话的辣椒",
-      "main_group": null,
+      "main_group": NaN,
       "all_groups": [
-        null
+        NaN
       ],
       "message_count": 1,
       "avg_message_length": 6.0,

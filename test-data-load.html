@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>数据加载测试</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="js/dimension-controller.js"></script>
+</head>
+<body>
+    <h1>数据加载测试</h1>
+    <div id="result"></div>
+
+    <script>
+        console.log('开始测试数据加载...');
+
+        let testResults = [];
+
+        // 测试1: DimensionController类实例化
+        try {
+            const testController = new DimensionController();
+            testResults.push('✓ DimensionController类实例化成功');
+            console.log('DimensionController实例化成功', testController);
+        } catch (error) {
+            testResults.push('✗ DimensionController类实例化失败: ' + error.message);
+            console.error('DimensionController实例化失败:', error);
+        }
+
+        // 测试2: 直接访问JSON文件
+        $.ajax({
+            url: 'data/analytics.json',
+            dataType: 'json',
+            cache: false,
+            timeout: 30000,
+            beforeSend: function(xhr) {
+                xhr.overrideMimeType('application/json; charset=utf-8');
+            }
+        })
+        .done(function(data) {
+            testResults.push('✓ JSON加载成功');
+            console.log('JSON加载成功！', data);
+
+            // 测试3: 设置数据到控制器
+            try {
+                const testController = new DimensionController();
+                testController.setData(data);
+                testResults.push('✓ 维度控制器数据设置成功');
+                console.log('维度控制器数据设置成功');
+            } catch (error) {
+                testResults.push('✗ 维度控制器数据设置失败: ' + error.message);
+                console.error('维度控制器数据设置失败:', error);
+            }
+
+            document.getElementById('result').innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    ${testResults.map(result => `<p>${result}</p>`).join('')}
+                </div>
+                <h2 style="color: green;">JSON数据详情</h2>
+                <p>总用户数: ${data.stats.total_users}</p>
+                <p>总消息数: ${data.stats.total_messages}</p>
+                <p>JSON大小: ${JSON.stringify(data).length} 字符</p>
+                <p>更新时间: ${data.stats.update_time}</p>
+                <p>用户数据示例: ${data.users.length > 0 ? data.users[0].nickname : '无'}</p>
+            `;
+        })
+        .fail(function(jqXHR, textStatus, errorThrown) {
+            testResults.push('✗ JSON加载失败: ' + textStatus + ' - ' + errorThrown);
+            console.error('JSON加载失败:', textStatus, errorThrown);
+            document.getElementById('result').innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    ${testResults.map(result => `<p>${result}</p>`).join('')}
+                </div>
+                <h2 style="color: red;">数据加载失败</h2>
+                <p>状态: ${textStatus}</p>
+                <p>错误: ${errorThrown}</p>
+                <p>状态码: ${jqXHR.status}</p>
+                <p>响应文本: ${jqXHR.responseText ? jqXHR.responseText.substring(0, 200) + '...' : '无'}</p>
+            `;
+        });
+    </script>
+</body>
+</html>
