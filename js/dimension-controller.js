@@ -1,7 +1,7 @@
 // 多维度分析控制器
 class DimensionController {
     constructor() {
-        this.currentDimension = 'message_volume';
+        this.currentDimension = 'overview';
         this.currentGroup = '';
         this.filteredUsers = [];
         this.analyticsData = null;
@@ -145,6 +145,7 @@ class DimensionController {
     // 动态更新用户列表标题
     updateUserListTitle(dimension) {
         const titleMap = {
+            'overview': '用户画像列表',
             'message_volume': '发言量用户列表',
             'time_pattern': '时间习惯用户列表',
             'content_type': '发言类型用户列表',
@@ -244,6 +245,19 @@ class DimensionController {
 
         // 更新图表
         this.updateCharts();
+
+        // 特殊处理：整体概览
+        if (this.currentDimension === 'overview') {
+            // 延迟初始化整体概览图表，确保DOM已准备就绪
+            setTimeout(() => {
+                if (typeof initializeOverviewCharts === 'function') {
+                    initializeOverviewCharts();
+                }
+                if (typeof updateOverviewStats === 'function') {
+                    updateOverviewStats();
+                }
+            }, 200);
+        }
 
         // 特殊处理：发言类型分析
         if (this.currentDimension === 'content_type') {
@@ -548,26 +562,33 @@ class DimensionController {
         let totalInteractionScore = 0;
 
         users.forEach(user => {
-            // 计算社交行为指标
-            const socialData = this.calculateUserSocialBehavior(user);
+            // 直接使用后端提供的社交行为数据
+            const socialData = user.dimensions?.social_behavior || {
+                type: '社交观察型',
+                metrics: {
+                    interactionScore: 0,
+                    influenceScore: 0,
+                    firstMessageRatio: 0,
+                    questionFrequency: 0,
+                    mentionFrequency: 0,
+                    replyRatio: 0,
+                    beMentionedRatio: 0
+                }
+            };
 
             // 统计分布
             const type = socialData.type;
             distribution[type] = (distribution[type] || 0) + 1;
 
-            // 添加社交行为数据到用户对象
-            if (!user.dimensions) user.dimensions = {};
-            user.dimensions.social_behavior = socialData;
-
             // 累计指标
-            totalInteractionScore += socialData.metrics.interactionScore;
+            totalInteractionScore += socialData.metrics.interactionScore || 0;
 
             // 分类收集顶级用户
             const userInfo = {
                 nickname: user.nickname,
                 count: user.message_count || 0,
                 type: type,
-                socialScore: socialData.socialScore,
+                socialScore: socialData.metrics.interactionScore || 0,
                 metrics: socialData.metrics
             };
 
@@ -575,8 +596,10 @@ class DimensionController {
                 topProactiveUsers.push(userInfo);
             } else if (type === '社交附和型') {
                 topResponsiveUsers.push(userInfo);
-            } else if (type === '被迫社交型') {
+            } else if (type === '被动社交型') {
                 topPassiveUsers.push(userInfo);
+            } else if (type === '社交观察型') {
+                topPassiveUsers.push(userInfo);  // 观察型也归入被动类型
             }
         });
 
@@ -642,105 +665,323 @@ class DimensionController {
         };
     }
 
-    // 估算社交指标
+    // 估算社交指标（简化版）
     estimateSocialMetrics(user, userIdHash) {
         const messageCount = user.message_count || 0;
         const groupCount = user.all_groups?.length || 1;
-        const contentType = user.dimensions?.content_type?.type || '未知';
-        const timePattern = user.dimensions?.time_pattern?.stats || {};
 
-        // 1. 首条消息比例推测（基于活跃度和群组参与）
+        // 获取发言量分层
+        const tier = this.getMessageTier(messageCount);
+
+        // 使用简单的哈希分布，避免过度假设
+        // 1. 首条消息比例（基于发言量和随机分布）
         let firstMessageRatio = 0.1;
-        if (messageCount > 200) firstMessageRatio = 0.25 + (userIdHash % 15) / 100;
-        else if (messageCount > 50) firstMessageRatio = 0.15 + (userIdHash % 20) / 100;
-        else firstMessageRatio = 0.05 + (userIdHash % 15) / 100;
+        if (tier === 'ultra_high') firstMessageRatio = 0.30 + (userIdHash % 25) / 100; // 30%-55%
+        else if (tier === 'high') firstMessageRatio = 0.20 + (userIdHash % 30) / 100; // 20%-50%
+        else if (tier === 'medium') firstMessageRatio = 0.15 + (userIdHash % 25) / 100; // 15%-40%
+        else if (tier === 'low') firstMessageRatio = 0.10 + (userIdHash % 20) / 100; // 10%-30%
+        else firstMessageRatio = 0.05 + (userIdHash % 15) / 100; // 5%-20%
 
-        // 2. 提问频率推测（基于内容类型）
-        let questionFrequency = 0.1;
-        const questionTypeBonus = {
-            '学习方法型': 0.15,
-            '考试型': 0.12,
-            '技术型': 0.10,
-            '社会技巧型': 0.08
-        };
-        questionFrequency = (questionTypeBonus[contentType] || 0.05) + (userIdHash % 20) / 100;
+        // 2. 提问频率（相对保守的分布）
+        let questionFrequency = 0.05 + (userIdHash % 20) / 100; // 5%-25%
 
-        // 3. @他人频率推测（基于群组活跃度）
-        let mentionFrequency = 0.05;
-        if (groupCount >= 5) mentionFrequency = 0.15 + (userIdHash % 15) / 100;
-        else if (groupCount >= 3) mentionFrequency = 0.10 + (userIdHash % 12) / 100;
+        // 3. @他人频率（主要基于群组数量）
+        let mentionFrequency = 0.02;
+        if (groupCount >= 5) mentionFrequency = 0.12 + (userIdHash % 15) / 100;
+        else if (groupCount >= 3) mentionFrequency = 0.08 + (userIdHash % 12) / 100;
         else mentionFrequency = 0.03 + (userIdHash % 8) / 100;
 
-        // 4. 回复率推测（基于消息数和时间模式）
-        let replyRatio = 0.3;
-        const eveningRatio = timePattern.evening_ratio || 0;
-        if (eveningRatio > 0.4) replyRatio = 0.5 + (userIdHash % 30) / 100; // 晚间活跃=社交型
-        else replyRatio = 0.2 + (userIdHash % 40) / 100;
+        // 4. 回复率（基于发言量层级）
+        let replyRatio = 0.2;
+        if (tier === 'ultra_high') replyRatio = 0.45 + (userIdHash % 30) / 100; // 45%-75%
+        else if (tier === 'high') replyRatio = 0.35 + (userIdHash % 35) / 100; // 35%-70%
+        else if (tier === 'medium') replyRatio = 0.25 + (userIdHash % 40) / 100; // 25%-65%
+        else replyRatio = 0.15 + (userIdHash % 35) / 100; // 15%-50%
 
-        // 5. 被@频率推测（基于影响力）
-        let beMentionedRatio = 0.05;
-        if (messageCount > 500) beMentionedRatio = 0.20 + (userIdHash % 15) / 100;
-        else if (messageCount > 100) beMentionedRatio = 0.10 + (userIdHash % 20) / 100;
-        else beMentionedRatio = 0.02 + (userIdHash % 10) / 100;
+        // 5. 被@频率（主要基于发言量）
+        let beMentionedRatio = 0.02;
+        if (tier === 'ultra_high') beMentionedRatio = 0.25 + (userIdHash % 20) / 100;
+        else if (tier === 'high') beMentionedRatio = 0.15 + (userIdHash % 15) / 100;
+        else if (tier === 'medium') beMentionedRatio = 0.08 + (userIdHash % 12) / 100;
+        else if (tier === 'low') beMentionedRatio = 0.04 + (userIdHash % 8) / 100;
+        else beMentionedRatio = 0.01 + (userIdHash % 5) / 100;
 
-        // 6. 互动评分
-        const interactionScore = Math.min(100,
-            (mentionFrequency * 30) + (replyRatio * 25) + (questionFrequency * 25) + (firstMessageRatio * 20)
+        // 简化的社交活跃度评分
+        const socialActivityScore = Math.min(100,
+            (firstMessageRatio + questionFrequency + mentionFrequency + replyRatio + beMentionedRatio) * 40
         );
 
-        // 7. 影响力评分
+        // 简化的互动评分
+        const interactionScore = Math.min(100,
+            (mentionFrequency * 25) + (replyRatio * 30) + (questionFrequency * 25) + (firstMessageRatio * 20)
+        );
+
+        // 简化的影响力评分
         const influenceScore = Math.min(100,
-            (messageCount / 20) + (groupCount * 5) + (beMentionedRatio * 50)
+            (Math.log(messageCount + 1) * 20) + (groupCount * 10) + (beMentionedRatio * 50)
         );
 
         return {
-            firstMessageRatio,
-            questionFrequency,
-            mentionFrequency,
-            replyRatio,
-            beMentionedRatio,
+            firstMessageRatio: Math.min(0.99, Math.max(0.01, firstMessageRatio)),
+            questionFrequency: Math.min(0.99, Math.max(0.01, questionFrequency)),
+            mentionFrequency: Math.min(0.99, Math.max(0.01, mentionFrequency)),
+            replyRatio: Math.min(0.99, Math.max(0.01, replyRatio)),
+            beMentionedRatio: Math.min(0.99, Math.max(0.01, beMentionedRatio)),
+            socialActivityScore: Math.round(socialActivityScore),
             interactionScore: Math.round(interactionScore),
             influenceScore: Math.round(influenceScore)
         };
     }
 
+
     // 社交行为分类
     classifySocialBehavior(metrics, messageCount, groupCount) {
         const { firstMessageRatio, questionFrequency, mentionFrequency, replyRatio, beMentionedRatio } = metrics;
 
-        // 主动社交型判断
-        if (firstMessageRatio > 0.3 && questionFrequency > 0.2 && mentionFrequency > 0.12) {
-            return {
-                type: '主动社交型',
-                subtype: firstMessageRatio > 0.4 ? '话题领袖' : '积极参与者',
-                confidence: 0.85
-            };
-        }
+        // 发言量分层处理
+        const tier = this.getMessageTier(messageCount);
 
-        // 社交附和型判断
-        if (replyRatio > 0.6 && questionFrequency < 0.1 && firstMessageRatio < 0.2) {
-            return {
-                type: '社交附和型',
-                subtype: replyRatio > 0.8 ? '积极响应者' : '温和支持者',
-                confidence: 0.80
-            };
-        }
-
-        // 被迫社交型判断
-        if (beMentionedRatio > 0.2 && firstMessageRatio < 0.15) {
-            return {
-                type: '被迫社交型',
-                subtype: beMentionedRatio > 0.3 ? '被动参与者' : '偶尔互动者',
-                confidence: 0.75
-            };
-        }
-
-        // 默认为观察型
-        return {
-            type: '观察型',
-            subtype: messageCount > 50 ? '低频互动者' : '沉默观察者',
-            confidence: 0.70
+        // 计算各类型加权评分
+        const scores = {
+            proactive: this.calculateProactiveScore(metrics, messageCount, tier),
+            responsive: this.calculateResponsiveScore(metrics, messageCount, tier),
+            passive: this.calculatePassiveScore(metrics, messageCount, tier),
+            observer: this.calculateObserverScore(metrics, messageCount, tier)
         };
+
+        // 找出得分最高的类型
+        const maxScore = Math.max(...Object.values(scores));
+        const bestType = Object.keys(scores).find(key => scores[key] === maxScore);
+
+        // 防止所有得分都很低的情况
+        if (maxScore < 20) {
+            return {
+                type: '社交观察型',
+                subtype: messageCount > 50 ? '低频互动者' : '沉默观察者',
+                confidence: 0.60,
+                scores: scores
+            };
+        }
+
+        // 返回最佳匹配类型
+        const typeMap = {
+            proactive: {
+                type: '主动社交型',
+                subtype: this.getProactiveSubtype(metrics, messageCount),
+                confidence: this.calculateConfidence(maxScore, scores)
+            },
+            responsive: {
+                type: '社交附和型',
+                subtype: this.getResponsiveSubtype(metrics, messageCount),
+                confidence: this.calculateConfidence(maxScore, scores)
+            },
+            passive: {
+                type: '被迫社交型',
+                subtype: this.getPassiveSubtype(metrics, messageCount),
+                confidence: this.calculateConfidence(maxScore, scores)
+            },
+            observer: {
+                type: '社交观察型',
+                subtype: this.getObserverSubtype(metrics, messageCount),
+                confidence: this.calculateConfidence(maxScore, scores)
+            }
+        };
+
+        const result = typeMap[bestType];
+        result.scores = scores;
+        return result;
+    }
+
+    // 获取发言量分层
+    getMessageTier(messageCount) {
+        if (messageCount >= 500) return 'ultra_high';
+        if (messageCount >= 200) return 'high';
+        if (messageCount >= 100) return 'medium';
+        if (messageCount >= 50) return 'low';
+        return 'very_low';
+    }
+
+    // 计算主动社交型评分
+    calculateProactiveScore(metrics, messageCount, tier) {
+        const { firstMessageRatio, questionFrequency, mentionFrequency } = metrics;
+        let score = 0;
+
+        // 双重阈值：比例 + 绝对数量
+        const firstMessageCount = Math.round(messageCount * firstMessageRatio);
+
+        // 首条消息评分 (40%权重)
+        let firstMsgScore = 0;
+        if (tier === 'ultra_high') {
+            // 超高发言量：绝对数量权重更高
+            firstMsgScore = Math.min(40, (firstMessageCount / 50) * 40);
+            firstMsgScore += Math.min(20, firstMessageRatio * 100 * 0.2);
+        } else if (tier === 'high') {
+            // 高发言量：平衡考虑
+            firstMsgScore = Math.min(25, (firstMessageCount / 30) * 25);
+            firstMsgScore += Math.min(15, firstMessageRatio * 100 * 0.15);
+        } else {
+            // 中低发言量：主要看比例
+            firstMsgScore = Math.min(40, firstMessageRatio * 100 * 0.4);
+        }
+        score += firstMsgScore;
+
+        // 提问频率评分 (30%权重)
+        const questionScore = Math.min(30, questionFrequency * 100 * 0.3);
+        score += questionScore;
+
+        // @他人频率评分 (30%权重)
+        const mentionScore = Math.min(30, mentionFrequency * 100 * 0.3);
+        score += mentionScore;
+
+        return Math.round(score);
+    }
+
+    // 计算社交附和型评分
+    calculateResponsiveScore(metrics, messageCount, tier) {
+        const { replyRatio, questionFrequency, firstMessageRatio, mentionFrequency } = metrics;
+        let score = 0;
+
+        // 回复比例评分 (50%权重)
+        let replyScore = Math.min(50, replyRatio * 100 * 0.5);
+
+        // 高发言量用户的回复阈值适当降低
+        if (tier === 'ultra_high' && replyRatio > 0.4) {
+            replyScore = Math.min(50, (replyRatio - 0.1) * 100 * 0.6);
+        }
+        score += replyScore;
+
+        // 低提问频率奖励 (20%权重)
+        const lowQuestionBonus = questionFrequency < 0.15 ? 20 : Math.max(0, 20 - questionFrequency * 100);
+        score += lowQuestionBonus;
+
+        // 低主动性奖励 (15%权重)
+        const lowInitiativeBonus = firstMessageRatio < 0.25 ? 15 : Math.max(0, 15 - firstMessageRatio * 60);
+        score += lowInitiativeBonus;
+
+        // 适量互动奖励 (15%权重)
+        const moderateInteraction = mentionFrequency > 0.05 && mentionFrequency < 0.2 ? 15 : 0;
+        score += moderateInteraction;
+
+        return Math.round(score);
+    }
+
+    // 计算被迫社交型评分
+    calculatePassiveScore(metrics, messageCount, tier) {
+        const { beMentionedRatio, firstMessageRatio, replyRatio } = metrics;
+        let score = 0;
+
+        // 被@频率评分 (60%权重)
+        let beMentionedScore = 0;
+        if (tier === 'ultra_high') {
+            // 高发言量用户：被@绝对次数也重要
+            const beMentionedCount = Math.round(messageCount * beMentionedRatio);
+            beMentionedScore = Math.min(40, (beMentionedCount / 100) * 40);
+            beMentionedScore += Math.min(20, beMentionedRatio * 100 * 0.2);
+        } else {
+            beMentionedScore = Math.min(60, beMentionedRatio * 100 * 0.6);
+        }
+        score += beMentionedScore;
+
+        // 低主动性奖励 (25%权重)
+        const lowInitiativeBonus = firstMessageRatio < 0.2 ? 25 : Math.max(0, 25 - firstMessageRatio * 125);
+        score += lowInitiativeBonus;
+
+        // 响应性奖励 (15%权重)
+        const responseBonus = replyRatio > 0.3 ? Math.min(15, replyRatio * 25) : 0;
+        score += responseBonus;
+
+        return Math.round(score);
+    }
+
+    // 计算观察型评分
+    calculateObserverScore(metrics, messageCount, tier) {
+        const { firstMessageRatio, questionFrequency, mentionFrequency, replyRatio, beMentionedRatio } = metrics;
+        let score = 30; // 基础分
+
+        // 社交活跃度低奖励
+        const socialActivity = firstMessageRatio + questionFrequency + mentionFrequency + replyRatio + beMentionedRatio;
+
+        if (socialActivity < 1.0) {
+            score += 20; // 低社交活跃度奖励
+        }
+
+        // 发言量适中但互动少的情况
+        if (messageCount > 20 && messageCount < 200 && socialActivity < 0.8) {
+            score += 15;
+        }
+
+        // 极低互动频率
+        if (mentionFrequency < 0.05 && beMentionedRatio < 0.1) {
+            score += 15;
+        }
+
+        return Math.round(score);
+    }
+
+    // 计算置信度
+    calculateConfidence(maxScore, scores) {
+        const sortedScores = Object.values(scores).sort((a, b) => b - a);
+        const scoreDiff = sortedScores[0] - sortedScores[1];
+
+        // 基础置信度
+        let confidence = 0.5 + (maxScore / 100) * 0.3;
+
+        // 分数差距奖励
+        confidence += (scoreDiff / 100) * 0.2;
+
+        return Math.min(0.95, Math.max(0.5, confidence));
+    }
+
+    // 获取主动社交型子类型
+    getProactiveSubtype(metrics, messageCount) {
+        const { firstMessageRatio, questionFrequency } = metrics;
+
+        if (messageCount > 500 && firstMessageRatio > 0.4) {
+            return '话题领袖';
+        } else if (questionFrequency > 0.25) {
+            return '积极询问者';
+        } else if (firstMessageRatio > 0.35) {
+            return '主动发起者';
+        } else {
+            return '积极参与者';
+        }
+    }
+
+    // 获取社交附和型子类型
+    getResponsiveSubtype(metrics, messageCount) {
+        const { replyRatio, mentionFrequency } = metrics;
+
+        if (replyRatio > 0.8) {
+            return '积极响应者';
+        } else if (mentionFrequency > 0.1) {
+            return '互动支持者';
+        } else {
+            return '温和附和者';
+        }
+    }
+
+    // 获取被迫社交型子类型
+    getPassiveSubtype(metrics, messageCount) {
+        const { beMentionedRatio, replyRatio } = metrics;
+
+        if (beMentionedRatio > 0.3 && replyRatio > 0.5) {
+            return '被动活跃者';
+        } else if (beMentionedRatio > 0.25) {
+            return '频繁被叫者';
+        } else {
+            return '偶尔互动者';
+        }
+    }
+
+    // 获取观察型子类型
+    getObserverSubtype(metrics, messageCount) {
+        if (messageCount > 100) {
+            return '低频互动者';
+        } else if (messageCount > 20) {
+            return '偶尔发言者';
+        } else {
+            return '沉默观察者';
+        }
     }
 
     // 计算社交评分
@@ -809,8 +1050,8 @@ class DimensionController {
         const descriptions = {
             '主动社交型': '积极发起话题，引导讨论，具有较强的社交主导能力',
             '社交附和型': '善于回应他人，积极参与讨论，是群组互动的重要支撑',
-            '被迫社交型': '较少主动发言，多在被提及时才参与，需要外界引导',
-            '观察型': '以观察为主，发言较少，偏向于静默获取信息'
+            '被动社交型': '较少主动发言，多在被提及时才参与，需要外界引导',
+            '社交观察型': '以观察为主，发言较少，偏向于静默获取信息'
         };
         return descriptions[type] || '暂无描述';
     }
@@ -1600,7 +1841,7 @@ class DimensionController {
         setTimeout(() => {
             this.initializeDataTables(processedUsers);
             console.log('表格重新初始化完成');
-        }, 50);
+        }, 150); // 增加延迟时间确保DOM完全清理
     }
 
     // 彻底销毁所有表格
@@ -1608,44 +1849,93 @@ class DimensionController {
         try {
             // 销毁桌面端表格
             if ($.fn.DataTable.isDataTable('#usersTable')) {
-                $('#usersTable').DataTable().destroy();
+                $('#usersTable').DataTable().destroy(true); // 使用 true 参数彻底销毁
                 console.log('已销毁桌面端表格');
             }
 
             // 销毁移动端表格
             if ($.fn.DataTable.isDataTable('#usersTableMobile')) {
-                $('#usersTableMobile').DataTable().destroy();
+                $('#usersTableMobile').DataTable().destroy(true); // 使用 true 参数彻底销毁
                 console.log('已销毁移动端表格');
             }
 
-            // 强制清理所有DataTables相关DOM元素
-            $('.dataTables_wrapper').remove();
+            // 销毁其他可能存在的表格
+            if ($.fn.DataTable.isDataTable('#contentTypeTable')) {
+                $('#contentTypeTable').DataTable().destroy(true);
+                console.log('已销毁发言类型表格');
+            }
+
+            if ($.fn.DataTable.isDataTable('#socialBehaviorTable')) {
+                $('#socialBehaviorTable').DataTable().destroy(true);
+                console.log('已销毁社交行为表格');
+            }
+
+            if ($.fn.DataTable.isDataTable('#categoryUsersTable')) {
+                $('#categoryUsersTable').DataTable().destroy(true);
+                console.log('已销毁分类用户表格');
+            }
+
+            // 更彻底的DOM清理 - 清理所有可能的DataTables元素
+            $('.dataTables_wrapper').each(function() {
+                $(this).remove();
+            });
             $('.dataTables_filter').remove();
             $('.dataTables_paginate').remove();
             $('.dataTables_info').remove();
             $('.dataTables_length').remove();
             $('.dataTables_processing').remove();
+            $('.dataTables_scroll').remove();
+            $('.dataTables_scrollHead').remove();
+            $('.dataTables_scrollBody').remove();
+            $('.dataTables_scrollFoot').remove();
 
-            // 确保表格HTML结构正确
+            // 确保表格HTML结构正确，重置为原始状态
             const usersTable = document.getElementById('usersTable');
             const usersTableMobile = document.getElementById('usersTableMobile');
 
             if (usersTable) {
-                // 清空tbody内容，但保留基本结构
+                // 移除所有DataTables添加的class和属性
+                usersTable.removeAttribute('style');
+                usersTable.className = 'table table-striped table-hover';
+
+                // 清空tbody内容
                 const tbody = usersTable.querySelector('tbody');
                 if (tbody) {
                     tbody.innerHTML = '';
                 }
+
+                // 确保表格不在wrapper中
+                const wrapper = usersTable.closest('.dataTables_wrapper');
+                if (wrapper && wrapper.parentNode) {
+                    wrapper.parentNode.insertBefore(usersTable, wrapper);
+                    wrapper.remove();
+                }
             }
 
             if (usersTableMobile) {
+                // 移除所有DataTables添加的class和属性
+                usersTableMobile.removeAttribute('style');
+                usersTableMobile.className = 'table table-striped table-hover table-sm d-md-none';
+
                 const tbody = usersTableMobile.querySelector('tbody');
                 if (tbody) {
                     tbody.innerHTML = '';
                 }
+
+                // 确保表格不在wrapper中
+                const wrapper = usersTableMobile.closest('.dataTables_wrapper');
+                if (wrapper && wrapper.parentNode) {
+                    wrapper.parentNode.insertBefore(usersTableMobile, wrapper);
+                    wrapper.remove();
+                }
             }
 
-            console.log('已清理所有DataTables DOM元素和表格内容');
+            // 额外等待确保DOM完全清理
+            setTimeout(() => {
+                $('.dataTables_wrapper').remove();
+            }, 10);
+
+            console.log('已彻底清理所有DataTables DOM元素和表格内容');
         } catch (error) {
             console.error('销毁表格时出错:', error);
         }
@@ -1937,7 +2227,7 @@ class DimensionController {
         const colors = {
             '主动社交型': 'primary',
             '社交附和型': 'success',
-            '被迫社交型': 'warning',
+            '被动社交型': 'warning',
             '社交观察型': 'info'
         };
         return colors[type] || 'secondary';
@@ -2034,15 +2324,33 @@ class DimensionController {
                     ];
 
                 case 'social_behavior':
-                    // 8列：用户昵称、主要群组、参与群数、消息数、社交类型、社交评分、标签、操作
-                    const socialScore = dimData.socialScore || '未知';
+                    // 7列：用户昵称、社交类型、互动频率、影响力评分、主要群组、特征描述、操作
+                    const socialBehavior = user.dimensions?.social_behavior || {};
+                    const metrics = socialBehavior.metrics || {};
+                    const interactionScore = metrics.interactionScore ? `${metrics.interactionScore}` : '未知';
+                    const influenceScore = metrics.influenceScore ? `${metrics.influenceScore}` : '未知';
+                    const socialDescription = this.getSocialBehaviorDescription(socialBehavior.type || dimData.level);
+
+                    return [
+                        user.nickname,
+                        `<span class="badge bg-${this.getSocialBehaviorLevelColor(socialBehavior.type || '社交观察型')}">${socialBehavior.type || '社交观察型'}</span>`,
+                        `<span class="badge bg-info">${interactionScore}</span>`,
+                        `<span class="badge bg-success">${influenceScore}</span>`,
+                        user.main_group || '未知群组',
+                        `<small class="text-muted">${socialDescription}</small>`,
+                        `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
+                    ];
+
+                case 'overview':
+                    // 整体概览使用和message_volume相同的格式
+                    const overviewRankDisplay = dimData.rank === 999 ? '未排名' : `#${dimData.rank}`;
                     return [
                         user.nickname,
                         user.main_group || '未知群组',
                         user.all_groups ? user.all_groups.length : 1,
                         dimData.count,
                         `<span class="badge bg-${dimData.color}">${dimData.level}</span>`,
-                        `<span class="badge bg-warning">评分 ${socialScore}</span>`,
+                        overviewRankDisplay,
                         this.formatUserTags(user.profile_summary?.tags || []),
                         `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
                     ];
@@ -2087,6 +2395,12 @@ class DimensionController {
 
     // 初始化数据表格
     initializeDataTables(processedUsers) {
+        // 防止重复初始化的安全检查
+        if ($.fn.DataTable.isDataTable('#usersTable') || $.fn.DataTable.isDataTable('#usersTableMobile')) {
+            console.warn('⚠️ 表格已经初始化，跳过重复初始化');
+            return;
+        }
+
         // 桌面端表格数据
         const desktopTableData = this.generateDesktopTableData(processedUsers);
 
@@ -2187,7 +2501,7 @@ class DimensionController {
                 language: {
                     url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/zh.json'
                 },
-                pageLength: 5,           // 减少每页显示数量，强制分页
+                pageLength: 10,          // 与桌面端保持一致，避免重复表格的假象
                 responsive: false,
                 paging: true,           // 强制启用分页
                 searching: true,        // 启用搜索框
@@ -2222,7 +2536,7 @@ class DimensionController {
                 try {
                     const basicMobileConfig = {
                         data: mobileTableData,
-                        pageLength: 5,    // 减少每页显示数量，强制分页
+                        pageLength: 10,   // 与桌面端保持一致
                         searching: true,  // 启用搜索
                         ordering: false,
                         paging: true,     // 启用分页
@@ -2670,7 +2984,7 @@ class DimensionController {
         }
 
         // 准备数据：各社交类型的平均指标
-        const types = ['主动社交型', '社交附和型', '被迫社交型', '观察型'];
+        const types = ['主动社交型', '社交附和型', '被动社交型', '社交观察型'];
         const interactionScores = [];
         const influenceScores = [];
 
@@ -2756,8 +3070,20 @@ class DimensionController {
             };
         }
 
-        const totals = users.reduce((sum, user) => {
-            const metrics = user.metrics || {};
+        // 从filteredUsers中获取所有用户的社交指标
+        const allUsers = this.filteredUsers || [];
+        if (allUsers.length === 0) {
+            return {
+                firstMessageRatio: '0.0',
+                questionFrequency: '0.0',
+                mentionFrequency: '0.0',
+                replyRatio: '0.0',
+                beMentionedRatio: '0.0'
+            };
+        }
+
+        const totals = allUsers.reduce((sum, user) => {
+            const metrics = user.dimensions?.social_behavior?.metrics || {};
             return {
                 firstMessageRatio: sum.firstMessageRatio + (parseFloat(metrics.firstMessageRatio) || 0),
                 questionFrequency: sum.questionFrequency + (parseFloat(metrics.questionFrequency) || 0),
@@ -2774,11 +3100,11 @@ class DimensionController {
         });
 
         return {
-            firstMessageRatio: (totals.firstMessageRatio / users.length).toFixed(1),
-            questionFrequency: (totals.questionFrequency / users.length).toFixed(1),
-            mentionFrequency: (totals.mentionFrequency / users.length).toFixed(1),
-            replyRatio: (totals.replyRatio / users.length).toFixed(1),
-            beMentionedRatio: (totals.beMentionedRatio / users.length).toFixed(1)
+            firstMessageRatio: (totals.firstMessageRatio / allUsers.length).toFixed(1),
+            questionFrequency: (totals.questionFrequency / allUsers.length).toFixed(1),
+            mentionFrequency: (totals.mentionFrequency / allUsers.length).toFixed(1),
+            replyRatio: (totals.replyRatio / allUsers.length).toFixed(1),
+            beMentionedRatio: (totals.beMentionedRatio / allUsers.length).toFixed(1)
         };
     }
 }

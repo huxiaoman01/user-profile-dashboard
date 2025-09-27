@@ -218,15 +218,20 @@ class EnhancedUserProfileProcessor:
                     mentioned_count += 1
         mention_rate = mentioned_count / len(all_messages) if len(all_messages) > 0 else 0
 
-        # 社交类型判断
-        if initiate_rate > 0.3 or question_rate > 0.2:
+        # 社交类型判断 - 统一标准
+        # 计算综合社交评分
+        interaction_score = (initiate_rate * 40 + question_rate * 30 + reply_rate * 20 + mention_rate * 100) * 100
+        influence_score = (initiate_rate * 50 + question_rate * 30 + agreement_rate * 20) * 100
+
+        # 统一分类标准
+        if initiate_rate > 0.25 or question_rate > 0.15:
             social_type = '主动社交型'
-        elif reply_rate > 0.6 or agreement_rate > 0.3:
+        elif reply_rate > 0.5 or agreement_rate > 0.25:
             social_type = '社交附和型'
-        elif mention_rate > 0.002:  # 被提及频率较高
+        elif mention_rate > 0.001 and reply_rate > 0.3:  # 被提及且有回应
             social_type = '被动社交型'
         else:
-            social_type = '一般社交型'
+            social_type = '社交观察型'
 
         return {
             'type': social_type,
@@ -235,7 +240,15 @@ class EnhancedUserProfileProcessor:
                 'reply_rate': round(reply_rate, 3),
                 'question_rate': round(question_rate, 3),
                 'agreement_rate': round(agreement_rate, 3),
-                'mention_rate': round(mention_rate, 5)
+                'mention_rate': round(mention_rate, 5),
+                'interactionScore': round(interaction_score, 1),
+                'influenceScore': round(influence_score, 1),
+                # 为前端提供百分比格式的数据
+                'firstMessageRatio': round(initiate_rate * 100, 1),
+                'questionFrequency': round(question_rate * 100, 1),
+                'mentionFrequency': round(mention_rate * 1000, 1),  # 转换为千分比
+                'replyRatio': round(reply_rate * 100, 1),
+                'beMentionedRatio': round(mention_rate * 100, 1)
             }
         }
 

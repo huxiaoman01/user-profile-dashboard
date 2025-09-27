@@ -1,5 +1,12 @@
 // 小小纺用户画像分析平台 - 图表配置
 
+console.log('🔧 charts.js 文件开始加载...');
+
+// 测试函数
+window.testChartsLoaded = function() {
+    console.log('✅ charts.js 文件已成功加载');
+};
+
 // Chart.js 全局配置
 Chart.defaults.font.family = 'Microsoft YaHei, sans-serif';
 Chart.defaults.responsive = true;
@@ -16,14 +23,19 @@ function initializeCharts() {
 }
 
 // 整体概览页面图表初始化
-function initializeOverviewCharts() {
-    if (!analyticsData) return;
+window.initializeOverviewCharts = function() {
+    console.log('开始初始化整体概览图表...');
+    if (!analyticsData) {
+        console.log('analyticsData不存在');
+        return;
+    }
 
     initializeUserHierarchyChart();
     initializeContentEcosystemChart();
     initializeActivityHeatmapChart();
     initializeTrendAnalysisChart();
-}
+    console.log('整体概览图表初始化完成');
+};
 
 // 用户分层金字塔图
 function initializeUserHierarchyChart() {
@@ -197,12 +209,11 @@ function initializeActivityHeatmapChart() {
                     y: item.y,
                     r: Math.max(3, Math.min(15, item.v / 10)) // 根据活跃度调整点的大小
                 })),
-                backgroundColor: function(context) {
-                    const value = hourlyData[context.dataIndex].v;
+                backgroundColor: hourlyData.map(item => {
                     const maxValue = Math.max(...hourlyData.map(d => d.v));
-                    const intensity = value / maxValue;
+                    const intensity = item.v / maxValue;
                     return `rgba(231, 76, 60, ${0.3 + intensity * 0.7})`;
-                },
+                }),
                 borderColor: '#e74c3c',
                 borderWidth: 1
             }]

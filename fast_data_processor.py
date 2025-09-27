@@ -130,17 +130,35 @@ class FastUserProfileProcessor:
         question_rate = question_count / total
         reply_rate = replies / total
 
-        # 简化分类
-        if question_rate > 0.2:
-            social_type = '主动型'
+        # 统一分类标准，与enhanced保持一致
+        initiate_rate = question_rate  # 简化处理，用问题率代表发起率
+        mention_rate = 0.001 if replies > 0 else 0  # 简化处理
+
+        # 计算综合社交评分
+        interaction_score = (initiate_rate * 40 + question_rate * 30 + reply_rate * 20 + mention_rate * 100) * 100
+        influence_score = (initiate_rate * 50 + question_rate * 30 + reply_rate * 20) * 100
+
+        # 统一分类标准
+        if initiate_rate > 0.15 or question_rate > 0.15:
+            social_type = '主动社交型'
         elif reply_rate > 0.5:
-            social_type = '附和型'
+            social_type = '社交附和型'
+        elif reply_rate > 0.3:
+            social_type = '被动社交型'
         else:
-            social_type = '一般型'
+            social_type = '社交观察型'
 
         return social_type, {
             'question_rate': round(question_rate, 3),
-            'reply_rate': round(reply_rate, 3)
+            'reply_rate': round(reply_rate, 3),
+            'interactionScore': round(interaction_score, 1),
+            'influenceScore': round(influence_score, 1),
+            # 为前端提供百分比格式的数据
+            'firstMessageRatio': round(initiate_rate * 100, 1),
+            'questionFrequency': round(question_rate * 100, 1),
+            'mentionFrequency': round(mention_rate * 1000, 1),
+            'replyRatio': round(reply_rate * 100, 1),
+            'beMentionedRatio': round(mention_rate * 100, 1)
         }
 
     def analyze_sentiment(self, contents):

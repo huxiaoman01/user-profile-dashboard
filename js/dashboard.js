@@ -382,21 +382,11 @@ function initializeDashboard() {
 
         // 删除词云功能按需求
 
-        // 初始化整体概览图表和数据
-        if (typeof initializeOverviewCharts === 'function') {
-            setTimeout(() => {
-                initializeOverviewCharts();
-                updateOverviewStats();
-                console.log('整体概览图表和数据初始化完成');
-            }, 500);
-        }
-
-        // 如果当前维度是发言类型，初始化发言类型分析
-        if (dimensionController && dimensionController.currentDimension === 'content_type') {
-            setTimeout(() => {
-                initializeContentTypeAnalysis();
-            }, 500);
-        }
+        // 初始化整体概览图表（因为默认是overview维度）
+        setTimeout(() => {
+            initializeOverviewChartsLocal();
+            updateOverviewStats();
+        }, 1000);
 
         console.log('仪表板初始化完成');
     } catch (error) {
@@ -768,7 +758,8 @@ function initializeContentTypeAnalysis() {
     try {
         generateContentTypeStats();
         createContentTypeCharts();
-        initializeContentTypeTable();
+        // 移除额外的表格初始化，统一使用主用户列表
+        // initializeContentTypeTable();
         initializeContentTypeFilter();
         initializeContentTypeExport();
 
@@ -1031,8 +1022,8 @@ function createContentTypeBarChart() {
     });
 }
 
-// 初始化发言类型表格
-function initializeContentTypeTable() {
+// 初始化发言类型表格 - 已废弃，统一使用主用户列表
+function initializeContentTypeTable_DEPRECATED() {
     const users = analyticsData.users;
 
     // 桌面端表格数据
