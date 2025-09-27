@@ -151,6 +151,7 @@ class DimensionController {
         const usersTable = document.getElementById('usersTable');
         const mainUserListCard = usersTable ? usersTable.closest('.card') : null;
 
+<<<<<<< HEAD
         console.log(`toggleMainUserList 被调用，维度: ${dimension}`);
         console.log(`找到的usersTable:`, usersTable);
         console.log(`找到的mainUserListCard:`, mainUserListCard);
@@ -167,10 +168,22 @@ class DimensionController {
             } else {
                 console.log(`${dimension} 维度：无法隐藏主用户列表，未找到card元素`);
             }
+=======
+        // 有专用表格的维度隐藏主用户列表，避免重复
+        const dimensionsWithDedicatedTables = ['content_type', 'social_behavior'];
+
+        if (dimensionsWithDedicatedTables.includes(dimension)) {
+            // 隐藏主用户列表
+            if (mainUserListCard) {
+                mainUserListCard.style.display = 'none';
+            }
+            console.log(`${dimension} 维度：隐藏主用户列表，使用专用表格`);
+>>>>>>> 9625cdec5de160b9e46632c4dc4240f7cc402479
         } else {
             // 显示主用户列表
             if (mainUserListCard) {
                 mainUserListCard.style.display = 'block';
+<<<<<<< HEAD
                 console.log(`${dimension} 维度：成功显示主用户列表`);
             } else {
                 console.log(`${dimension} 维度：无法显示主用户列表，未找到card元素`);
@@ -190,6 +203,10 @@ class DimensionController {
                 return document.querySelector('#socialBehaviorTable') !== null;
             default:
                 return false;
+=======
+            }
+            console.log(`${dimension} 维度：显示主用户列表`);
+>>>>>>> 9625cdec5de160b9e46632c4dc4240f7cc402479
         }
     }
 
@@ -3295,6 +3312,7 @@ class DimensionController {
     classifySocialBehaviorFallback(metrics, messageCount, groupCount, contentType) {
         const { firstMessageRatio, questionFrequency, replyRatio, mentionFrequency } = metrics;
 
+<<<<<<< HEAD
         // 计算各类型的匹配度评分
         const scores = {
             proactive: 0,
@@ -3343,6 +3361,18 @@ class DimensionController {
 
         const bestType = Object.keys(scores).find(key => scores[key] === maxScore);
         return { type: typeMap[bestType] };
+=======
+        // 分类逻辑
+        if (firstMessageRatio > 0.2 || questionFrequency > 0.15) {
+            return { type: '主动社交型' };
+        } else if (replyRatio > 0.5 || (contentType === '娱乐搞笑型' && replyRatio > 0.4)) {
+            return { type: '社交附和型' };
+        } else if (messageCount > 50 && (replyRatio > 0.3 || mentionFrequency > 0.008)) {
+            return { type: '被动社交型' };
+        } else {
+            return { type: '社交观察型' };
+        }
+>>>>>>> 9625cdec5de160b9e46632c4dc4240f7cc402479
     }
 
     // 获取消息量分层
