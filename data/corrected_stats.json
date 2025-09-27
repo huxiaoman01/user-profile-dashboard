@@ -1,9 +1,0 @@
-{
-  "stats": {
-    "total_users": 550,
-    "total_messages": 21649,
-    "total_groups": 10,
-    "update_time": "2025-09-26 18:46:49",
-    "correction_note": "已修正：只过滤武小纺机器人(ID:3655943918)，保留所有其他真实用户数据"
-  }
-}
