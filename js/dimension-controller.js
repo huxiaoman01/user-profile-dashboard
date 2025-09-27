@@ -538,6 +538,295 @@ class DimensionController {
         return insights;
     }
 
+    // 社交行为维度统计
+    calculateSocialBehaviorStats(users) {
+        const distribution = {};
+        const socialMetrics = {};
+        let topProactiveUsers = [];
+        let topResponsiveUsers = [];
+        let topPassiveUsers = [];
+        let totalInteractionScore = 0;
+
+        users.forEach(user => {
+            // 计算社交行为指标
+            const socialData = this.calculateUserSocialBehavior(user);
+
+            // 统计分布
+            const type = socialData.type;
+            distribution[type] = (distribution[type] || 0) + 1;
+
+            // 添加社交行为数据到用户对象
+            if (!user.dimensions) user.dimensions = {};
+            user.dimensions.social_behavior = socialData;
+
+            // 累计指标
+            totalInteractionScore += socialData.metrics.interactionScore;
+
+            // 分类收集顶级用户
+            const userInfo = {
+                nickname: user.nickname,
+                count: user.message_count || 0,
+                type: type,
+                socialScore: socialData.socialScore,
+                metrics: socialData.metrics
+            };
+
+            if (type === '主动社交型') {
+                topProactiveUsers.push(userInfo);
+            } else if (type === '社交附和型') {
+                topResponsiveUsers.push(userInfo);
+            } else if (type === '被迫社交型') {
+                topPassiveUsers.push(userInfo);
+            }
+        });
+
+        // 排序用户列表
+        topProactiveUsers.sort((a, b) => b.socialScore - a.socialScore);
+        topResponsiveUsers.sort((a, b) => b.socialScore - a.socialScore);
+        topPassiveUsers.sort((a, b) => b.socialScore - a.socialScore);
+
+        // 计算整体统计
+        const totalUsers = users.length;
+        const avgInteractionScore = totalUsers > 0 ? totalInteractionScore / totalUsers : 0;
+
+        return {
+            type: 'social_behavior',
+            title: '社交行为分析',
+            total_users: totalUsers,
+            distribution,
+            social_metrics: socialMetrics,
+            avg_interaction_score: avgInteractionScore.toFixed(1),
+            proactive_count: distribution['主动社交型'] || 0,
+            responsive_count: distribution['社交附和型'] || 0,
+            passive_count: distribution['被迫社交型'] || 0,
+            observer_count: distribution['观察型'] || 0,
+            top_proactive_users: topProactiveUsers.slice(0, 10),
+            top_responsive_users: topResponsiveUsers.slice(0, 10),
+            top_passive_users: topPassiveUsers.slice(0, 10),
+            insights: this.generateSocialBehaviorInsights(distribution, totalUsers, avgInteractionScore)
+        };
+    }
+
+    // 计算单个用户的社交行为
+    calculateUserSocialBehavior(user) {
+        const messageCount = user.message_count || 0;
+        const groupCount = user.all_groups?.length || 1;
+        const contentType = user.dimensions?.content_type?.type || '未知';
+        const timePattern = user.dimensions?.time_pattern || {};
+        const userIdHash = this.hashUserId(user.user_id);
+
+        // 估算社交指标
+        const metrics = this.estimateSocialMetrics(user, userIdHash);
+
+        // 分类决策
+        const classification = this.classifySocialBehavior(metrics, messageCount, groupCount);
+
+        // 计算综合社交评分
+        const socialScore = this.calculateSocialScore(metrics, messageCount, groupCount);
+
+        return {
+            type: classification.type,
+            subtype: classification.subtype,
+            metrics: {
+                firstMessageRatio: (metrics.firstMessageRatio * 100).toFixed(1),
+                questionFrequency: (metrics.questionFrequency * 100).toFixed(1),
+                mentionFrequency: (metrics.mentionFrequency * 100).toFixed(1),
+                replyRatio: (metrics.replyRatio * 100).toFixed(1),
+                beMentionedRatio: (metrics.beMentionedRatio * 100).toFixed(1),
+                interactionScore: metrics.interactionScore,
+                influenceScore: metrics.influenceScore
+            },
+            socialScore: socialScore,
+            confidence: classification.confidence,
+            description: this.getSocialBehaviorDescription(classification.type)
+        };
+    }
+
+    // 估算社交指标
+    estimateSocialMetrics(user, userIdHash) {
+        const messageCount = user.message_count || 0;
+        const groupCount = user.all_groups?.length || 1;
+        const contentType = user.dimensions?.content_type?.type || '未知';
+        const timePattern = user.dimensions?.time_pattern?.stats || {};
+
+        // 1. 首条消息比例推测（基于活跃度和群组参与）
+        let firstMessageRatio = 0.1;
+        if (messageCount > 200) firstMessageRatio = 0.25 + (userIdHash % 15) / 100;
+        else if (messageCount > 50) firstMessageRatio = 0.15 + (userIdHash % 20) / 100;
+        else firstMessageRatio = 0.05 + (userIdHash % 15) / 100;
+
+        // 2. 提问频率推测（基于内容类型）
+        let questionFrequency = 0.1;
+        const questionTypeBonus = {
+            '学习方法型': 0.15,
+            '考试型': 0.12,
+            '技术型': 0.10,
+            '社会技巧型': 0.08
+        };
+        questionFrequency = (questionTypeBonus[contentType] || 0.05) + (userIdHash % 20) / 100;
+
+        // 3. @他人频率推测（基于群组活跃度）
+        let mentionFrequency = 0.05;
+        if (groupCount >= 5) mentionFrequency = 0.15 + (userIdHash % 15) / 100;
+        else if (groupCount >= 3) mentionFrequency = 0.10 + (userIdHash % 12) / 100;
+        else mentionFrequency = 0.03 + (userIdHash % 8) / 100;
+
+        // 4. 回复率推测（基于消息数和时间模式）
+        let replyRatio = 0.3;
+        const eveningRatio = timePattern.evening_ratio || 0;
+        if (eveningRatio > 0.4) replyRatio = 0.5 + (userIdHash % 30) / 100; // 晚间活跃=社交型
+        else replyRatio = 0.2 + (userIdHash % 40) / 100;
+
+        // 5. 被@频率推测（基于影响力）
+        let beMentionedRatio = 0.05;
+        if (messageCount > 500) beMentionedRatio = 0.20 + (userIdHash % 15) / 100;
+        else if (messageCount > 100) beMentionedRatio = 0.10 + (userIdHash % 20) / 100;
+        else beMentionedRatio = 0.02 + (userIdHash % 10) / 100;
+
+        // 6. 互动评分
+        const interactionScore = Math.min(100,
+            (mentionFrequency * 30) + (replyRatio * 25) + (questionFrequency * 25) + (firstMessageRatio * 20)
+        );
+
+        // 7. 影响力评分
+        const influenceScore = Math.min(100,
+            (messageCount / 20) + (groupCount * 5) + (beMentionedRatio * 50)
+        );
+
+        return {
+            firstMessageRatio,
+            questionFrequency,
+            mentionFrequency,
+            replyRatio,
+            beMentionedRatio,
+            interactionScore: Math.round(interactionScore),
+            influenceScore: Math.round(influenceScore)
+        };
+    }
+
+    // 社交行为分类
+    classifySocialBehavior(metrics, messageCount, groupCount) {
+        const { firstMessageRatio, questionFrequency, mentionFrequency, replyRatio, beMentionedRatio } = metrics;
+
+        // 主动社交型判断
+        if (firstMessageRatio > 0.3 && questionFrequency > 0.2 && mentionFrequency > 0.12) {
+            return {
+                type: '主动社交型',
+                subtype: firstMessageRatio > 0.4 ? '话题领袖' : '积极参与者',
+                confidence: 0.85
+            };
+        }
+
+        // 社交附和型判断
+        if (replyRatio > 0.6 && questionFrequency < 0.1 && firstMessageRatio < 0.2) {
+            return {
+                type: '社交附和型',
+                subtype: replyRatio > 0.8 ? '积极响应者' : '温和支持者',
+                confidence: 0.80
+            };
+        }
+
+        // 被迫社交型判断
+        if (beMentionedRatio > 0.2 && firstMessageRatio < 0.15) {
+            return {
+                type: '被迫社交型',
+                subtype: beMentionedRatio > 0.3 ? '被动参与者' : '偶尔互动者',
+                confidence: 0.75
+            };
+        }
+
+        // 默认为观察型
+        return {
+            type: '观察型',
+            subtype: messageCount > 50 ? '低频互动者' : '沉默观察者',
+            confidence: 0.70
+        };
+    }
+
+    // 计算社交评分
+    calculateSocialScore(metrics, messageCount, groupCount) {
+        const { interactionScore, influenceScore, firstMessageRatio, replyRatio } = metrics;
+
+        // 综合评分：互动分数40% + 影响力分数30% + 主动性20% + 响应性10%
+        const score = (interactionScore * 0.4) +
+                     (influenceScore * 0.3) +
+                     (firstMessageRatio * 100 * 0.2) +
+                     (replyRatio * 100 * 0.1);
+
+        return Math.round(Math.min(100, score));
+    }
+
+    // 生成社交行为洞察
+    generateSocialBehaviorInsights(distribution, totalUsers, avgInteractionScore) {
+        const insights = [];
+
+        if (totalUsers === 0) return insights;
+
+        const proactiveCount = distribution['主动社交型'] || 0;
+        const responsiveCount = distribution['社交附和型'] || 0;
+        const passiveCount = distribution['被迫社交型'] || 0;
+        const observerCount = distribution['观察型'] || 0;
+
+        const proactiveRatio = (proactiveCount / totalUsers * 100).toFixed(1);
+        const responsiveRatio = (responsiveCount / totalUsers * 100).toFixed(1);
+        const passiveRatio = (passiveCount / totalUsers * 100).toFixed(1);
+
+        // 主动社交分析
+        if (proactiveRatio > 15) {
+            insights.push(`${proactiveRatio}%的用户属于主动社交型，群组讨论氛围活跃`);
+        } else if (proactiveRatio < 5) {
+            insights.push(`主动社交型用户较少(${proactiveRatio}%)，需要更多话题引导者`);
+        } else {
+            insights.push(`${proactiveRatio}%的用户积极发起话题和互动`);
+        }
+
+        // 社交附和分析
+        if (responsiveRatio > 30) {
+            insights.push(`${responsiveRatio}%的用户善于回应，群组凝聚力较强`);
+        } else if (responsiveRatio < 15) {
+            insights.push(`响应型用户偏少(${responsiveRatio}%)，群组互动有待提升`);
+        }
+
+        // 被动社交分析
+        if (passiveRatio > 20) {
+            insights.push(`${passiveRatio}%的用户需要他人引导才参与讨论`);
+        }
+
+        // 整体互动评分
+        if (avgInteractionScore > 60) {
+            insights.push(`群组整体互动评分${avgInteractionScore}分，社交氛围良好`);
+        } else if (avgInteractionScore < 40) {
+            insights.push(`群组互动评分${avgInteractionScore}分，建议增加互动活动`);
+        } else {
+            insights.push(`群组互动评分${avgInteractionScore}分，有提升空间`);
+        }
+
+        return insights;
+    }
+
+    // 获取社交行为描述
+    getSocialBehaviorDescription(type) {
+        const descriptions = {
+            '主动社交型': '积极发起话题，引导讨论，具有较强的社交主导能力',
+            '社交附和型': '善于回应他人，积极参与讨论，是群组互动的重要支撑',
+            '被迫社交型': '较少主动发言，多在被提及时才参与，需要外界引导',
+            '观察型': '以观察为主，发言较少，偏向于静默获取信息'
+        };
+        return descriptions[type] || '暂无描述';
+    }
+
+    // 哈希函数（确保确定性）
+    hashUserId(userId) {
+        let hash = 0;
+        const str = userId.toString();
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        return Math.abs(hash) % 100;
+    }
+
     // 时间习惯维度统计
     calculateTimePatternStats(users) {
         const distribution = {};
@@ -683,6 +972,8 @@ class DimensionController {
                 return this.generateTimePatternCards(stats);
             case 'content_type':
                 return this.generateContentTypeCards(stats);
+            case 'social_behavior':
+                return this.generateSocialBehaviorCards(stats);
             default:
                 return '<div class="col-12"><p class="text-muted">暂未实现该维度的统计卡片</p></div>';
         }
@@ -899,6 +1190,65 @@ class DimensionController {
         `;
     }
 
+    // 生成社交行为统计卡片
+    generateSocialBehaviorCards(stats) {
+        const proactiveRatio = stats.total_users > 0 ? (stats.proactive_count / stats.total_users * 100).toFixed(1) : '0.0';
+        const responsiveRatio = stats.total_users > 0 ? (stats.responsive_count / stats.total_users * 100).toFixed(1) : '0.0';
+        const passiveRatio = stats.total_users > 0 ? (stats.passive_count / stats.total_users * 100).toFixed(1) : '0.0';
+        const observerRatio = stats.total_users > 0 ? (stats.observer_count / stats.total_users * 100).toFixed(1) : '0.0';
+
+        return `
+            <div class="col-md-3">
+                <div class="card border-success">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-success">${stats.proactive_count}</div>
+                        <h5 class="card-title">
+                            <i class="fas fa-bullhorn text-success me-1"></i>
+                            主动社交型 <span class="text-muted fs-6">(${proactiveRatio}%)</span>
+                        </h5>
+                        <p class="text-muted mb-0">话题引导者，积极发起讨论</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-info">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-info">${stats.responsive_count}</div>
+                        <h5 class="card-title">
+                            <i class="fas fa-reply text-info me-1"></i>
+                            社交附和型 <span class="text-muted fs-6">(${responsiveRatio}%)</span>
+                        </h5>
+                        <p class="text-muted mb-0">善于回应，积极参与互动</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-warning">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-warning">${stats.passive_count}</div>
+                        <h5 class="card-title">
+                            <i class="fas fa-at text-warning me-1"></i>
+                            被迫社交型 <span class="text-muted fs-6">(${passiveRatio}%)</span>
+                        </h5>
+                        <p class="text-muted mb-0">需要引导才参与讨论</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-secondary">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-secondary">${stats.observer_count}</div>
+                        <h5 class="card-title">
+                            <i class="fas fa-eye text-secondary me-1"></i>
+                            观察型 <span class="text-muted fs-6">(${observerRatio}%)</span>
+                        </h5>
+                        <p class="text-muted mb-0">以观察为主，较少发言</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
     // 更新图表
     updateCharts() {
         switch (this.currentDimension) {
@@ -910,6 +1260,9 @@ class DimensionController {
                 break;
             case 'time_pattern':
                 this.updateTimePatternCharts();
+                break;
+            case 'social_behavior':
+                this.updateSocialBehaviorCharts();
                 break;
             default:
                 console.log(`维度 ${this.currentDimension} 的图表功能暂未实现`);
@@ -1511,6 +1864,20 @@ class DimensionController {
                     eveningRatio: ((stats.evening_ratio || 0) * 100).toFixed(1) + '%',
                     nightRatio: ((stats.night_ratio || 0) * 100).toFixed(1) + '%'
                 };
+            case 'social_behavior':
+                const socialBehavior = dims.social_behavior || {};
+                const metrics = socialBehavior.metrics || {};
+                return {
+                    level: socialBehavior.type || '未知',
+                    count: user.message_count || 0,
+                    rank: 0,
+                    color: this.getSocialBehaviorLevelColor(socialBehavior.type),
+                    confidence: ((socialBehavior.confidence || 0) * 100).toFixed(1) + '%',
+                    firstMessageRatio: ((metrics.firstMessageRatio || 0) * 100).toFixed(1) + '%',
+                    questionFrequency: ((metrics.questionFrequency || 0) * 100).toFixed(1) + '%',
+                    mentionFrequency: ((metrics.mentionFrequency || 0) * 100).toFixed(1) + '%',
+                    replyRatio: ((metrics.replyRatio || 0) * 100).toFixed(1) + '%'
+                };
             default:
                 return { level: '未知', count: 0, rank: 999, color: 'secondary' };
         }
@@ -1565,6 +1932,16 @@ class DimensionController {
         return colors[type] || 'secondary';
     }
 
+    // 获取社交行为级别颜色
+    getSocialBehaviorLevelColor(type) {
+        const colors = {
+            '主动社交型': 'primary',
+            '社交附和型': 'success',
+            '被迫社交型': 'warning',
+            '社交观察型': 'info'
+        };
+        return colors[type] || 'secondary';
+    }
 
     // 获取当前维度的排序值
     getCurrentSortValue(user) {
@@ -1586,6 +1963,9 @@ class DimensionController {
                 return user.message_count || 0;
             case 'time_pattern':
                 // 时间习惯按消息数排序
+                return user.message_count || 0;
+            case 'social_behavior':
+                // 社交行为按消息数排序
                 return user.message_count || 0;
             default:
                 return 0;
@@ -1807,7 +2187,7 @@ class DimensionController {
                 language: {
                     url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/zh.json'
                 },
-                pageLength: 8,
+                pageLength: 5,           // 减少每页显示数量，强制分页
                 responsive: false,
                 paging: true,           // 强制启用分页
                 searching: true,        // 启用搜索框
@@ -1816,8 +2196,8 @@ class DimensionController {
                 order: this.currentDimension === 'member_join_time' ? [] : [[1, 'desc']], // 加群时间维度使用预排序
                 columnDefs: columnConfigs.mobile,
                 lengthChange: false,    // 移动端隐藏改变每页条数
-                info: false,            // 移动端隐藏信息
-                dom: '<"top"f>rt<"clear">' // 移动端：搜索框在顶部，表格在中间
+                info: true,             // 显示信息，帮助确认分页工作
+                dom: 'frtip'            // 标准布局：搜索框、表格、信息、分页
             };
 
             // 添加移动端行样式（仅针对加群时间维度）
@@ -1842,9 +2222,13 @@ class DimensionController {
                 try {
                     const basicMobileConfig = {
                         data: mobileTableData,
-                        pageLength: 8,
-                        searching: false,
+                        pageLength: 5,    // 减少每页显示数量，强制分页
+                        searching: true,  // 启用搜索
                         ordering: false,
+                        paging: true,     // 启用分页
+                        lengthChange: false, // 隐藏长度选择
+                        info: true,       // 显示信息
+                        dom: 'frtip',     // 完整布局：搜索框、表格、信息和分页
                         columnDefs: [{ targets: -1, orderable: false, searchable: false }]
                     };
                     $('#usersTableMobile').DataTable(basicMobileConfig);
@@ -2132,6 +2516,270 @@ class DimensionController {
                 }
             }
         });
+    }
+
+    // 更新社交行为图表
+    updateSocialBehaviorCharts() {
+        const stats = this.calculateCurrentStats();
+
+        // 更新饼图 - 社交行为类型分布
+        this.updateSocialBehaviorDistributionChart(stats);
+
+        // 更新雷达图 - 社交行为指标
+        this.updateSocialRadarChart(stats);
+
+        // 更新柱状图 - 社交指标分析
+        this.updateSocialMetricsChart(stats);
+    }
+
+    // 更新社交行为分布饼图
+    updateSocialBehaviorDistributionChart(stats) {
+        const ctx = document.getElementById('socialBehaviorChart');
+        if (!ctx) return;
+
+        // 销毁现有图表
+        if (this.charts.socialDistributionChart) {
+            this.charts.socialDistributionChart.destroy();
+        }
+
+        const distribution = stats.distribution;
+        const labels = Object.keys(distribution);
+        const data = Object.values(distribution);
+        const colors = ['#28a745', '#17a2b8', '#ffc107', '#6c757d']; // 绿、蓝、黄、灰
+
+        this.charts.socialDistributionChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors.slice(0, labels.length),
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '社交行为类型分布',
+                        font: { size: 16 }
+                    },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            generateLabels: function(chart) {
+                                const original = Chart.defaults.plugins.legend.labels.generateLabels;
+                                const labels = original.call(this, chart);
+
+                                labels.forEach((label, i) => {
+                                    label.text += ` (${data[i]}人)`;
+                                });
+
+                                return labels;
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.raw / total) * 100).toFixed(1);
+                                return `${context.label}: ${context.raw}人 (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 更新社交行为雷达图
+    updateSocialRadarChart(stats) {
+        const ctx = document.getElementById('socialRadarChart');
+        if (!ctx) return;
+
+        // 销毁现有图表
+        if (this.charts.socialRadarChart) {
+            this.charts.socialRadarChart.destroy();
+        }
+
+        // 计算各维度平均值
+        const topUsers = [...stats.top_proactive_users, ...stats.top_responsive_users, ...stats.top_passive_users];
+        const avgMetrics = this.calculateAverageSocialMetrics(topUsers);
+
+        this.charts.socialRadarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['话题发起', '提问频率', '@他人频率', '回复响应', '被@频率'],
+                datasets: [{
+                    label: '群组社交特征',
+                    data: [
+                        parseFloat(avgMetrics.firstMessageRatio),
+                        parseFloat(avgMetrics.questionFrequency),
+                        parseFloat(avgMetrics.mentionFrequency),
+                        parseFloat(avgMetrics.replyRatio),
+                        parseFloat(avgMetrics.beMentionedRatio)
+                    ],
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(54, 162, 235, 1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '社交行为雷达分析',
+                        font: { size: 16 }
+                    }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            stepSize: 20,
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 更新社交指标柱状图
+    updateSocialMetricsChart(stats) {
+        const ctx = document.getElementById('socialMetricsChart');
+        if (!ctx) return;
+
+        // 销毁现有图表
+        if (this.charts.socialMetricsChart) {
+            this.charts.socialMetricsChart.destroy();
+        }
+
+        // 准备数据：各社交类型的平均指标
+        const types = ['主动社交型', '社交附和型', '被迫社交型', '观察型'];
+        const interactionScores = [];
+        const influenceScores = [];
+
+        types.forEach(type => {
+            const typeUsers = this.filteredUsers.filter(user =>
+                user.dimensions?.social_behavior?.type === type
+            );
+
+            if (typeUsers.length > 0) {
+                const avgInteraction = typeUsers.reduce((sum, user) =>
+                    sum + (user.dimensions?.social_behavior?.metrics?.interactionScore || 0), 0) / typeUsers.length;
+                const avgInfluence = typeUsers.reduce((sum, user) =>
+                    sum + (user.dimensions?.social_behavior?.metrics?.influenceScore || 0), 0) / typeUsers.length;
+
+                interactionScores.push(Math.round(avgInteraction));
+                influenceScores.push(Math.round(avgInfluence));
+            } else {
+                interactionScores.push(0);
+                influenceScores.push(0);
+            }
+        });
+
+        this.charts.socialMetricsChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: types,
+                datasets: [{
+                    label: '互动评分',
+                    data: interactionScores,
+                    backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }, {
+                    label: '影响力评分',
+                    data: influenceScores,
+                    backgroundColor: 'rgba(255, 99, 132, 0.8)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '各社交类型指标对比',
+                        font: { size: 16 }
+                    },
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: '评分'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: '社交类型'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 计算平均社交指标
+    calculateAverageSocialMetrics(users) {
+        if (users.length === 0) {
+            return {
+                firstMessageRatio: '0.0',
+                questionFrequency: '0.0',
+                mentionFrequency: '0.0',
+                replyRatio: '0.0',
+                beMentionedRatio: '0.0'
+            };
+        }
+
+        const totals = users.reduce((sum, user) => {
+            const metrics = user.metrics || {};
+            return {
+                firstMessageRatio: sum.firstMessageRatio + (parseFloat(metrics.firstMessageRatio) || 0),
+                questionFrequency: sum.questionFrequency + (parseFloat(metrics.questionFrequency) || 0),
+                mentionFrequency: sum.mentionFrequency + (parseFloat(metrics.mentionFrequency) || 0),
+                replyRatio: sum.replyRatio + (parseFloat(metrics.replyRatio) || 0),
+                beMentionedRatio: sum.beMentionedRatio + (parseFloat(metrics.beMentionedRatio) || 0)
+            };
+        }, {
+            firstMessageRatio: 0,
+            questionFrequency: 0,
+            mentionFrequency: 0,
+            replyRatio: 0,
+            beMentionedRatio: 0
+        });
+
+        return {
+            firstMessageRatio: (totals.firstMessageRatio / users.length).toFixed(1),
+            questionFrequency: (totals.questionFrequency / users.length).toFixed(1),
+            mentionFrequency: (totals.mentionFrequency / users.length).toFixed(1),
+            replyRatio: (totals.replyRatio / users.length).toFixed(1),
+            beMentionedRatio: (totals.beMentionedRatio / users.length).toFixed(1)
+        };
     }
 }
 

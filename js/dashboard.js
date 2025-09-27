@@ -382,6 +382,15 @@ function initializeDashboard() {
 
         // 删除词云功能按需求
 
+        // 初始化整体概览图表和数据
+        if (typeof initializeOverviewCharts === 'function') {
+            setTimeout(() => {
+                initializeOverviewCharts();
+                updateOverviewStats();
+                console.log('整体概览图表和数据初始化完成');
+            }, 500);
+        }
+
         // 如果当前维度是发言类型，初始化发言类型分析
         if (dimensionController && dimensionController.currentDimension === 'content_type') {
             setTimeout(() => {
@@ -393,6 +402,50 @@ function initializeDashboard() {
     } catch (error) {
         console.error('仪表板初始化失败:', error);
         showError('仪表板初始化失败: ' + error.message);
+    }
+}
+
+// 更新整体概览统计数据
+function updateOverviewStats() {
+    if (!analyticsData) return;
+
+    const stats = analyticsData.stats;
+
+    // 更新关键指标卡片
+    document.getElementById('totalUsers').textContent = stats.total_users || 0;
+    document.getElementById('totalMessages').textContent = (stats.total_messages || 0).toLocaleString();
+    document.getElementById('totalGroups').textContent = stats.total_groups || 0;
+
+    // 计算平均活跃度
+    const regularUsers = stats.time_habit_distribution['作息规律'] || 0;
+    const avgActivity = Math.round((regularUsers / stats.total_users) * 100);
+    document.getElementById('avgActivity').textContent = avgActivity + '%';
+
+    // 更新数据洞察
+    const techUsers = stats.content_type_distribution['技术型'] || 0;
+    const studyUsers = stats.content_type_distribution['学习方法型'] || 0;
+    const funUsers = stats.content_type_distribution['娱乐搞笑型'] || 0;
+    const chatUsers = stats.content_type_distribution['闲聊型'] || 0;
+
+    const studyPercent = Math.round(((techUsers + studyUsers) / stats.total_users) * 100);
+    const socialPercent = Math.round(((funUsers + chatUsers) / stats.total_users) * 100);
+
+    // 计算平均参与群数
+    let totalGroupCount = 0;
+    analyticsData.users.forEach(user => {
+        if (user.all_groups) {
+            totalGroupCount += user.all_groups.length;
+        }
+    });
+    const avgGroupCount = (totalGroupCount / analyticsData.users.length).toFixed(1);
+
+    // 更新洞察文本
+    const insights = document.querySelectorAll('.insight-content p');
+    if (insights.length >= 4) {
+        insights[0].textContent = `${avgActivity}% 用户作息规律`;
+        insights[1].textContent = `技术型+学习型占${studyPercent}%`;
+        insights[2].textContent = `娱乐型+闲聊型占${socialPercent}%`;
+        insights[3].textContent = `平均参与${avgGroupCount}个群聊`;
     }
 }
 

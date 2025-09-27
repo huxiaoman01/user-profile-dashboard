@@ -8,11 +8,369 @@ Chart.defaults.maintainAspectRatio = false;
 // 初始化所有图表
 function initializeCharts() {
     if (!analyticsData) return;
-    
+
     initializeNeedsChart();
     initializeGroupChart();
     initializeTrendChart();
     initializeHeatmapChart();
+}
+
+// 整体概览页面图表初始化
+function initializeOverviewCharts() {
+    if (!analyticsData) return;
+
+    initializeUserHierarchyChart();
+    initializeContentEcosystemChart();
+    initializeActivityHeatmapChart();
+    initializeTrendAnalysisChart();
+}
+
+// 用户分层金字塔图
+function initializeUserHierarchyChart() {
+    const ctx = document.getElementById('userHierarchyChart').getContext('2d');
+
+    const hierarchyData = analyticsData.stats.message_volume_distribution;
+    const labels = Object.keys(hierarchyData);
+    const data = Object.values(hierarchyData);
+    const total = data.reduce((sum, val) => sum + val, 0);
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '用户数量',
+                data: data,
+                backgroundColor: [
+                    '#e74c3c', // 主要发言人 - 红色
+                    '#f39c12', // 稳定发言人 - 橙色
+                    '#3498db', // 少量发言人 - 蓝色
+                    '#95a5a6'  // 极少发言人 - 灰色
+                ],
+                borderColor: '#fff',
+                borderWidth: 2,
+                borderRadius: 8,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const percentage = Math.round((context.parsed.x / total) * 100);
+                            return `${context.parsed.x} 人 (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            onClick: function(evt, activeElements) {
+                if (activeElements.length > 0) {
+                    const dataIndex = activeElements[0].index;
+                    const levelName = labels[dataIndex];
+                    drillDownToMessageVolume(levelName);
+                }
+            }
+        }
+    });
+}
+
+// 内容生态雷达图
+function initializeContentEcosystemChart() {
+    const ctx = document.getElementById('contentEcosystemChart').getContext('2d');
+
+    const contentData = analyticsData.stats.content_type_distribution;
+    const labels = Object.keys(contentData);
+    const data = Object.values(contentData);
+
+    new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '用户数量',
+                data: data,
+                backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                borderColor: 'rgba(52, 152, 219, 1)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(52, 152, 219, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(52, 152, 219, 1)',
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.parsed.r} 人`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    },
+                    angleLines: {
+                        color: 'rgba(0,0,0,0.1)'
+                    },
+                    pointLabels: {
+                        font: {
+                            size: 10
+                        }
+                    }
+                }
+            },
+            onClick: function(evt, activeElements) {
+                if (activeElements.length > 0) {
+                    const dataIndex = activeElements[0].index;
+                    const typeName = labels[dataIndex];
+                    drillDownToContentType(typeName);
+                }
+            }
+        }
+    });
+}
+
+// 活跃度热力图 (简化版矩阵图)
+function initializeActivityHeatmapChart() {
+    const ctx = document.getElementById('activityHeatmapChart').getContext('2d');
+
+    // 创建24小时活跃度数据
+    const hourlyData = [];
+    for (let hour = 0; hour < 24; hour++) {
+        let totalActivity = 0;
+        let userCount = 0;
+
+        analyticsData.users.forEach(user => {
+            if (user.dimensions && user.dimensions.time_pattern && user.dimensions.time_pattern.hour_distribution) {
+                const hourActivity = user.dimensions.time_pattern.hour_distribution[hour] || 0;
+                totalActivity += hourActivity;
+                if (hourActivity > 0) userCount++;
+            }
+        });
+
+        hourlyData.push({
+            x: hour,
+            y: 1,
+            v: totalActivity / Math.max(userCount, 1) // 平均活跃度
+        });
+    }
+
+    new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: '活跃度',
+                data: hourlyData.map(item => ({
+                    x: item.x,
+                    y: item.y,
+                    r: Math.max(3, Math.min(15, item.v / 10)) // 根据活跃度调整点的大小
+                })),
+                backgroundColor: function(context) {
+                    const value = hourlyData[context.dataIndex].v;
+                    const maxValue = Math.max(...hourlyData.map(d => d.v));
+                    const intensity = value / maxValue;
+                    return `rgba(231, 76, 60, ${0.3 + intensity * 0.7})`;
+                },
+                borderColor: '#e74c3c',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            return `${context[0].parsed.x}:00`;
+                        },
+                        label: function(context) {
+                            const hourData = hourlyData[context.dataIndex];
+                            return `平均活跃度: ${hourData.v.toFixed(1)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'linear',
+                    position: 'bottom',
+                    min: 0,
+                    max: 23,
+                    ticks: {
+                        stepSize: 2,
+                        callback: function(value) {
+                            return value + ':00';
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: '时间 (小时)'
+                    }
+                },
+                y: {
+                    display: false,
+                    min: 0.5,
+                    max: 1.5
+                }
+            },
+            onClick: function(evt, activeElements) {
+                if (activeElements.length > 0) {
+                    const dataIndex = activeElements[0].index;
+                    const hour = hourlyData[dataIndex].x;
+                    drillDownToTimePattern(hour);
+                }
+            }
+        }
+    });
+}
+
+// 趋势分析图表
+function initializeTrendAnalysisChart() {
+    const ctx = document.getElementById('trendAnalysisChart').getContext('2d');
+
+    // 模拟趋势数据 (实际应用中应该从数据中提取)
+    const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: days,
+            datasets: [
+                {
+                    label: '消息量',
+                    data: [120, 180, 150, 200, 160, 90, 80],
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: '活跃用户',
+                    data: [80, 120, 100, 140, 110, 60, 50],
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: '参与度',
+                    data: [65, 85, 70, 95, 80, 45, 40],
+                    borderColor: '#2ecc71',
+                    backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
+}
+
+// 钻取分析功能
+function drillDownToMessageVolume(level) {
+    console.log('钻取到发言量分析:', level);
+    // 切换到发言量分析页面并筛选特定等级
+    switchDimension('message_volume');
+    // TODO: 添加筛选逻辑
+}
+
+function drillDownToContentType(type) {
+    console.log('钻取到内容类型分析:', type);
+    // 切换到内容类型分析页面并筛选特定类型
+    switchDimension('content_type');
+    // TODO: 添加筛选逻辑
+}
+
+function drillDownToTimePattern(hour) {
+    console.log('钻取到时间模式分析:', hour + ':00');
+    // 切换到时间习惯分析页面并高亮特定时间
+    switchDimension('time_pattern');
+    // TODO: 添加时间高亮逻辑
+}
+
+function switchDimension(dimension) {
+    // 更新侧边栏选中状态
+    document.querySelectorAll('#dimensionTabs .nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+    document.querySelector(`#dimensionTabs .nav-link[data-dimension="${dimension}"]`).classList.add('active');
+
+    // 更新页面内容
+    document.querySelectorAll('.dimension-content').forEach(content => {
+        content.classList.add('d-none');
+    });
+    document.querySelector(`.dimension-content[data-dimension="${dimension}"]`).classList.remove('d-none');
+
+    // 更新用户画像列表
+    if (window.dimensionController) {
+        window.dimensionController.switchDimension(dimension);
+    }
 }
 
 // 需求分析饼图
