@@ -758,8 +758,7 @@ function initializeContentTypeAnalysis() {
     try {
         generateContentTypeStats();
         createContentTypeCharts();
-        // 移除额外的表格初始化，统一使用主用户列表
-        // initializeContentTypeTable();
+        initializeContentTypeTable();
         initializeContentTypeFilter();
         initializeContentTypeExport();
 
@@ -1022,8 +1021,8 @@ function createContentTypeBarChart() {
     });
 }
 
-// 初始化发言类型表格 - 已废弃，统一使用主用户列表
-function initializeContentTypeTable_DEPRECATED() {
+// 初始化发言类型表格
+function initializeContentTypeTable() {
     const users = analyticsData.users;
 
     // 桌面端表格数据
@@ -1059,8 +1058,8 @@ function initializeContentTypeTable_DEPRECATED() {
                 { targets: -1, orderable: false, searchable: false }, // 最后一列（详情按钮）不可排序
                 { targets: [2, 3], type: 'num' }
             ],
-            searching: false, // 禁用搜索框，避免重复
-            dom: 'rtip' // 简化布局：只要表格、信息和分页，去掉搜索框
+            searching: true, // 启用搜索框
+            dom: 'frtip' // 完整布局：搜索框、表格、信息和分页
         });
     }
 
@@ -1360,4 +1359,117 @@ function exportCategoryUsers(users, type) {
     link.click();
 
     console.log(`${type} 分类用户数据导出完成`);
+}
+
+// ===== 社交行为分析相关功能 =====
+
+// 初始化社交行为分析
+function initializeSocialBehaviorAnalysis() {
+    if (!analyticsData || !analyticsData.users) {
+        console.error('数据未加载，无法初始化社交行为分析');
+        return;
+    }
+
+    console.log('初始化社交行为分析...');
+
+    try {
+        initializeSocialBehaviorTable();
+        console.log('社交行为分析初始化完成');
+    } catch (error) {
+        console.error('社交行为分析初始化失败:', error);
+    }
+}
+
+// 初始化社交行为表格
+function initializeSocialBehaviorTable() {
+    const users = analyticsData.users;
+
+    // 桌面端表格数据
+    const tableData = users.map(user => {
+        const socialBehavior = user.dimensions?.social_behavior || {};
+        const metrics = socialBehavior.metrics || {};
+
+        return [
+            user.nickname,
+            `<span class="badge bg-warning">${socialBehavior.type || '未知'}</span>`,
+            Math.round(metrics.interactionScore || 0),
+            Math.round(metrics.influenceScore || 0),
+            user.main_group || '未知群组',
+            getSocialBehaviorDescription(socialBehavior.type),
+            `<button class="btn btn-primary btn-sm" onclick="showUserDetail('${user.user_id}')">查看详情</button>`
+        ];
+    });
+
+    // 初始化桌面端表格
+    if ($('#socialBehaviorTable').length > 0) {
+        // 销毁现有表格
+        if ($.fn.DataTable.isDataTable('#socialBehaviorTable')) {
+            $('#socialBehaviorTable').DataTable().destroy();
+        }
+
+        $('#socialBehaviorTable').DataTable({
+            data: tableData,
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/zh.json'
+            },
+            pageLength: 10,
+            responsive: true,
+            order: [[2, 'desc']], // 按互动频率排序
+            columnDefs: [
+                { targets: -1, orderable: false, searchable: false }, // 最后一列（详情按钮）不可排序
+                { targets: [2, 3], type: 'num' }
+            ],
+            searching: true, // 启用搜索框
+            dom: 'frtip' // 完整布局：搜索框、表格、信息和分页
+        });
+    }
+
+    // 生成移动端列表
+    generateMobileSocialBehaviorList(users);
+}
+
+// 生成移动端社交行为列表
+function generateMobileSocialBehaviorList(users) {
+    const container = $('#socialBehaviorListMobile');
+    container.empty();
+
+    users.forEach(user => {
+        const socialBehavior = user.dimensions?.social_behavior || {};
+        const metrics = socialBehavior.metrics || {};
+
+        const itemHtml = `
+            <div class="card mb-2">
+                <div class="card-body py-2">
+                    <div class="row align-items-center">
+                        <div class="col-6">
+                            <div class="fw-bold">${user.nickname}</div>
+                            <div class="small text-muted">${user.main_group || '未知群组'}</div>
+                            <span class="badge bg-warning">${socialBehavior.type || '未知'}</span>
+                        </div>
+                        <div class="col-3 text-center">
+                            <div class="fw-bold text-primary">${Math.round(metrics.interactionScore || 0)}</div>
+                            <div class="small text-muted">互动评分</div>
+                        </div>
+                        <div class="col-3">
+                            <button class="btn btn-primary btn-sm w-100" onclick="showUserDetail('${user.user_id}')">
+                                详情
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.append(itemHtml);
+    });
+}
+
+// 获取社交行为类型描述
+function getSocialBehaviorDescription(type) {
+    const descriptions = {
+        '主动社交型': '主动发起话题和互动',
+        '社交附和型': '积极回应他人互动',
+        '被动社交型': '较少主动，偶尔参与',
+        '观察型': '主要观察，很少发言'
+    };
+    return descriptions[type] || '暂无描述';
 }
