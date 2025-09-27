@@ -111,27 +111,88 @@ body {
     background: linear-gradient(45deg, #3498db, #2980b9) !important;
 }
 
-/* 数据洞察区域样式 - 深色系 */
-#compactInsights {
-    color: #495057;
+/* 新版数据洞察区域样式 - 极简设计 */
+.insights-container {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #f0f0f0;
 }
 
-#compactInsights .insight-item {
+.insights-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.insights-header i {
+    color: #e67e22;
+    font-size: 1.2rem;
     margin-right: 8px;
 }
 
-#compactInsights strong {
-    color: #34495e;
+.insights-header span {
+    color: #333;
+    font-size: 1rem;
     font-weight: 600;
 }
 
-.card.border-info {
-    border-color: #34495e !important;
-    background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f1 100%);
+.insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
 }
 
-.card.border-info .card-body {
-    background: rgba(52, 73, 94, 0.02);
+.insight-item {
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.2s ease;
+    border-left: 3px solid #e67e22;
+}
+
+.insight-item:hover {
+    background: #f5f5f5;
+    transform: translateY(-1px);
+}
+
+.insight-item .insight-icon {
+    color: #666;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+
+.insight-item .insight-title {
+    color: #333;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.insight-item .insight-value {
+    color: #666;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+    .insights-container {
+        padding: 16px;
+        margin: 0 -8px;
+    }
+
+    .insights-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .insight-item {
+        padding: 12px;
+    }
 }
 
 .card.bg-warning {
@@ -353,36 +414,6 @@ body {
 }
 
 /* ===== 整体概览页面样式 ===== */
-.insight-item {
-    display: flex;
-    align-items: center;
-    padding: 1rem;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border-left: 4px solid #007bff;
-    transition: all 0.3s ease;
-}
-
-.insight-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.insight-icon {
-    margin-right: 1rem;
-    font-size: 1.5rem;
-}
-
-.insight-content h6 {
-    margin-bottom: 0.25rem;
-    color: #495057;
-    font-weight: 600;
-}
-
-.insight-content p {
-    color: #6c757d;
-    font-size: 0.9rem;
-}
 
 /* 卡片悬停效果 */
 .card:hover {
